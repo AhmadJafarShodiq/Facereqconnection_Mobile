@@ -16,9 +16,13 @@ class _RegisterFacePageState extends State<RegisterFacePage> {
   static const MethodChannel _channel = MethodChannel('face_recognition');
 
   CameraController? _controller;
-  bool _processing = false;
+
   bool _livenessOk = false;
-  String _hint = "Kedipkan mata & gerakkan kepala";
+  bool _capturing = false;
+
+  String _hint = "Hadap kamera, kedip 1x lalu geleng pelan";
+
+  List<Map<String, double>> _landmarks = [];
 
   @override
   void initState() {
@@ -28,68 +32,88 @@ class _RegisterFacePageState extends State<RegisterFacePage> {
 
   Future<void> _initCamera() async {
     final cameras = await availableCameras();
-    final frontCamera = cameras.firstWhere(
+    final front = cameras.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.front,
     );
 
     _controller = CameraController(
-      frontCamera,
+      front,
       ResolutionPreset.medium,
       enableAudio: false,
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
 
     await _controller!.initialize();
+
+    await _channel.invokeMethod('setMode', {'mode': 'register'});
     await _channel.invokeMethod('resetLiveness');
 
-    // 🔥 STREAM FRAME UNTUK LIVENESS
     await _controller!.startImageStream(_onFrame);
 
     if (mounted) setState(() {});
   }
 
+  // 🔥 JANGAN BLOK FRAME (INI KUNCI)
   Future<void> _onFrame(CameraImage image) async {
-    if (_processing || _livenessOk) return;
-    _processing = true;
+    if (_livenessOk) return;
 
     try {
       final Uint8List bytes = image.planes[0].bytes;
 
-      final result = await _channel.invokeMethod('processFrame', {
+      final dynamic res = await _channel.invokeMethod('processFrame', {
         'image': bytes,
+        'mirror': true,
       });
 
-      if (result['liveness'] == true) {
+      if (!mounted || res == null || res is! Map) return;
+
+      if (res['landmarks'] != null && res['landmarks'] is List) {
+        setState(() {
+          _landmarks = List<Map<String, double>>.from(
+            (res['landmarks'] as List).map(
+              (e) => {
+                'x': (e['x'] as num).toDouble(),
+                'y': (e['y'] as num).toDouble(),
+              },
+            ),
+          );
+        });
+      }
+
+      if (res['liveness'] == true) {
         setState(() {
           _livenessOk = true;
-          _hint = "Liveness OK, klik daftar";
+          _hint = "Liveness OK, klik Daftarkan";
         });
-
-        await _controller!.stopImageStream();
+        await _controller?.stopImageStream();
       }
     } catch (_) {}
-
-    _processing = false;
   }
 
-  Future<void> _registerFace() async {
-    if (!_livenessOk || _processing) return;
-    _processing = true;
+  Future<void> _register() async {
+    if (_capturing || !_livenessOk) return;
+    _capturing = true;
 
     try {
-      // 🔥 WAJIB STOP STREAM
-      if (_controller!.value.isStreamingImages) {
-        await _controller!.stopImageStream();
-      }
+      // 🔥 DELAY BIAR STABIL
+      await Future.delayed(const Duration(seconds: 1));
 
-      final XFile photo = await _controller!.takePicture();
-      final Uint8List bytes = await File(photo.path).readAsBytes();
+      final photo = await _controller!.takePicture();
+      final bytes = await File(photo.path).readAsBytes();
 
       final result = await _channel.invokeMethod('getEmbedding', {
         'image': bytes,
       });
 
-      final List<double> embedding = List<double>.from(result['embedding']);
+      if (result['embedding'] == null) {
+        _error("Wajah tidak terdeteksi, silakan ulangi");
+        _capturing = false;
+        return;
+      }
+
+      final embedding = (result['embedding'] as List)
+          .map((e) => (e as num).toDouble())
+          .toList();
 
       await ApiService.registerFace(embedding);
 
@@ -97,15 +121,17 @@ class _RegisterFacePageState extends State<RegisterFacePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Wajah berhasil didaftarkan ✅')),
       );
-
       Navigator.pop(context, true);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      _error(e.toString());
     } finally {
-      _processing = false;
+      _capturing = false;
     }
+  }
+
+  void _error(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -117,14 +143,39 @@ class _RegisterFacePageState extends State<RegisterFacePage> {
       );
     }
 
+    final size = MediaQuery.of(context).size;
+    final cameraRatio = _controller!.value.aspectRatio;
+    final screenRatio = size.width / size.height;
+
+    double scale = cameraRatio / screenRatio;
+    if (scale < 1) scale = 1 / scale;
+
+    // 🔥 BATASI BIAR GA OVER ZOOM
+    scale = scale.clamp(1.0, 1.25);
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          CameraPreview(_controller!),
+          Transform.scale(
+            scale: scale,
+            child: Center(child: CameraPreview(_controller!)),
+          ),
+
+          Transform.scale(
+            scale: scale,
+            child: CustomPaint(
+              painter: FaceLandmarkPainter(
+                _landmarks,
+                mirror: true,
+                active: !_livenessOk,
+              ),
+            ),
+          ),
 
           Positioned(
-            top: 80,
+            top: 70,
             left: 0,
             right: 0,
             child: Center(
@@ -155,7 +206,7 @@ class _RegisterFacePageState extends State<RegisterFacePage> {
               right: 0,
               child: Center(
                 child: ElevatedButton(
-                  onPressed: _processing ? null : _registerFace,
+                  onPressed: _capturing ? null : _register,
                   child: const Text("DAFTARKAN WAJAH"),
                 ),
               ),
@@ -170,4 +221,35 @@ class _RegisterFacePageState extends State<RegisterFacePage> {
     _controller?.dispose();
     super.dispose();
   }
+}
+
+// ================== PAINTER ==================
+
+class FaceLandmarkPainter extends CustomPainter {
+  final List<Map<String, double>> landmarks;
+  final bool mirror;
+  final bool active;
+
+  FaceLandmarkPainter(
+    this.landmarks, {
+    this.mirror = false,
+    this.active = true,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = active ? Colors.greenAccent : Colors.blueAccent
+      ..style = PaintingStyle.fill;
+
+    for (final lm in landmarks) {
+      final x = mirror ? (1 - lm['x']!) : lm['x']!;
+      final dx = x * size.width;
+      final dy = lm['y']! * size.height;
+      canvas.drawCircle(Offset(dx, dy), 2, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant FaceLandmarkPainter oldDelegate) => true;
 }

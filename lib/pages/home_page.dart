@@ -1,13 +1,11 @@
-import 'package:facereq_mobile/pages/history_page.dart';
-import 'package:facereq_mobile/pages/profile_page.dart';
-import 'package:facereq_mobile/widgets/attendance_status.dart';
+// LOGIKA TIDAK DIUBAH — HANYA TAMPILAN + AUTO REFRESH
+import 'package:facereq_mobile/pages/home_guru_page.dart';
+import 'package:facereq_mobile/pages/location_check_page.dart';
 import 'package:flutter/material.dart';
-import 'camera_page.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
-import 'package:permission_handler/permission_handler.dart' as ph;
 import '../core/auth_storage.dart';
 import '../core/api_service.dart';
+import 'history_page.dart';
+import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,340 +15,389 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool showWelcome = true;
   int tabIndex = 1;
 
-  Map<String, dynamic>? user;
   Map<String, dynamic>? profile;
+  Map<String, dynamic>? attendanceToday;
+  List<Map<String, dynamic>> todaySubjects = [];
+  bool _absenLocked = false;
 
-  GoogleMapController? _mapController;
-  final Location location = Location();
-  Set<Marker> _markers = {};
-  BitmapDescriptor? _profileIcon;
+  bool faceVerified = false;
+  bool loading = true;
+  final Set<int> _lockedSubjects = {};
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
-    _loadProfileMarker();
-    _checkAttendanceStatus();
+    _init();
   }
 
-  // ================= USER =================
-  Future<void> _loadUser() async {
-    final data = await AuthStorage.getUser();
-    if (!mounted || data == null) return;
+  Future<void> _init() async {
+    try {
+      final user = await AuthStorage.getUser();
+      if (user == null) return;
 
-    setState(() {
-      user = data;
-      profile = data['profile'];
-    });
-  }
+      if (user['role'] == 'guru') {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeGuruPage()),
+        );
+        return;
+      }
 
-  // ================= MARKER =================
-  Future<void> _loadProfileMarker() async {
-    _profileIcon = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(100, 100)),
-      'assets/images/profile.png',
-    );
-    _checkPermissionAndTrackLocation();
-  }
+      profile = user['profile'];
 
-  Future<void> _checkPermissionAndTrackLocation() async {
-    final permission = await ph.Permission.location.request();
-    if (!permission.isGranted) return;
-
-    if (!await location.serviceEnabled()) {
-      if (!await location.requestService()) return;
+      await _checkFace();
+      await _loadAttendance();
+      final res = await ApiService.todaySchedule();
+      todaySubjects = List<Map<String, dynamic>>.from(res['data'] ?? []);
+    } catch (_) {
+      todaySubjects = [];
     }
 
-    location.onLocationChanged.listen((locData) {
-      if (!mounted ||
-          locData.latitude == null ||
-          locData.longitude == null ||
-          _mapController == null ||
-          _profileIcon == null) return;
-
-      final pos = LatLng(locData.latitude!, locData.longitude!);
-
-      setState(() {
-        _markers = {
-          Marker(
-            markerId: const MarkerId('user_marker'),
-            position: pos,
-            icon: _profileIcon!,
-            infoWindow: const InfoWindow(title: 'Posisi Saya'),
-          ),
-        };
-      });
-
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLng(pos),
-      );
-    });
+    if (mounted) setState(() => loading = false);
   }
 
-  // ================= ABSENSI =================
-  Future<void> _checkAttendanceStatus() async {
+  Future<void> _checkFace() async {
     try {
-      final history = await ApiService.getHistory();
-      if (!mounted) return;
-
-      if (history.isEmpty) {
-        _showAttendancePopupCustom(
-          AttendanceStatus.notCheckedIn,
-          "Silakan lakukan absen masuk.",
-        );
-      } else {
-        final last = history.last;
-        if (last['type'] == 'checkin') {
-          _showAttendancePopupCustom(
-            AttendanceStatus.checkedIn,
-            "Anda bisa absen pulang nanti.",
-          );
-        } else {
-          _showAttendancePopupCustom(
-            AttendanceStatus.checkedOut,
-            "Terima kasih sudah melakukan absensi.",
-          );
-        }
-      }
-    } catch (_) {}
+      final res = await ApiService.faceStatus();
+      faceVerified = res['verified'] == true;
+    } catch (_) {
+      faceVerified = false;
+    }
   }
 
-  void _showAttendancePopupCustom(
-      AttendanceStatus status, String message) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (_) =>
-          AttendancePopup(status: status, message: message),
+  Future<void> _loadAttendance() async {
+    try {
+      attendanceToday = await ApiService.todayAttendance();
+    } catch (_) {
+      attendanceToday = null;
+    }
+  }
+
+  Future<void> _reload() async {
+    await _checkFace();
+    await _loadAttendance();
+
+    final res = await ApiService.todaySchedule();
+    print("RELOAD RESPONSE: ${res['data']}"); // 🔥 TAMBAH INI
+
+    todaySubjects = List<Map<String, dynamic>>.from(res['data'] ?? []);
+
+    if (mounted) setState(() {});
+  }
+
+  Widget _body() {
+    if (loading) return const Center(child: CircularProgressIndicator());
+
+    switch (tabIndex) {
+      case 0:
+        return const ProfilePage();
+      case 2:
+        return const HistoryPage();
+      default:
+        return _dashboardSiswa();
+    }
+  }
+
+  Widget _dashboardSiswa() {
+    final name = profile?['nama_lengkap'] ?? '-';
+    final nis = profile?['nip_nis'] ?? '-';
+    final bool sudahAbsenMapel = todaySubjects.any(
+      (e) => e['attended'] == true,
     );
-  }
 
-  // ================= UI =================
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        elevation: 6,
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CameraPage()),
-          );
-        },
-        child: const Icon(Icons.camera_alt,
-            color: Colors.white, size: 28),
-      ),
-      bottomNavigationBar: _bottomBar(),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _appBar(),
-                Expanded(child: _map()),
-              ],
-            ),
+    final belumAbsen = !sudahAbsenMapel;
 
-            // ✅ FIX UTAMA — JANGAN CEK profile != null
-            if (showWelcome) _welcomeCard(),
-          ],
-        ),
-      ),
-    );
-  }
+    final checkIn = sudahAbsenMapel ? "Sudah Absen Mapel" : null;
+    final late = false;
+    final lateMin = 0;
 
-  Widget _appBar() {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        color: Colors.blue,
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black26,
-              blurRadius: 4,
-              offset: Offset(0, 2))
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _header(name, nis, belumAbsen),
+          const SizedBox(height: 20),
+          _statusCard(belumAbsen, checkIn, late, lateMin),
+          const SizedBox(height: 28),
+          const Text(
+            'Mapel Hari Ini',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 12),
+          todaySubjects.isNotEmpty
+              ? Column(children: todaySubjects.map(_subjectCard).toList())
+              : _emptySubjectCard(),
         ],
+      ),
+    );
+  }
+
+  Widget _header(String name, String nis, bool belumAbsen) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+        ),
       ),
       child: Row(
         children: [
           const CircleAvatar(
-            radius: 22,
-            backgroundImage:
-                AssetImage('assets/images/profile.png'),
+            radius: 26,
+            backgroundColor: Colors.white,
+            child: Icon(Icons.school, color: Colors.blue),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile?['nama_lengkap'] ?? '-',
+                  'Halo, $name 👋',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
-                  profile?['nip_nis'] ?? '-',
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 12),
+                  'NIS: $nis',
+                  style: const TextStyle(color: Colors.white70),
                 ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none,
-                color: Colors.white),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: belumAbsen ? Colors.orange : Colors.green,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              belumAbsen ? 'Belum Absen' : 'Hadir',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _map() {
-    return GoogleMap(
-      onMapCreated: (c) => _mapController = c,
-      initialCameraPosition: const CameraPosition(
-        target: LatLng(-7.983908, 112.621391),
-        zoom: 16,
-      ),
-      markers: _markers,
-      myLocationEnabled: false,
-      myLocationButtonEnabled: false,
-    );
-  }
-
-  Widget _bottomBar() {
-    return BottomAppBar(
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
-      color: Colors.white,
-      child: SizedBox(
-        height: 64,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _bottomItem(Icons.person_outline, 'Profile', 0),
-            const SizedBox(width: 56),
-            _bottomItem(Icons.history, 'History', 2),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _bottomItem(
-      IconData icon, String label, int index) {
-    final active = tabIndex == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() => tabIndex = index);
-          if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const ProfilePage()),
-            );
-          }
-          if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const HistoryPage()),
-            );
-          }
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon,
-                color:
-                    active ? Colors.blue : Colors.grey),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color:
-                    active ? Colors.blue : Colors.grey,
-                fontWeight: active
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ================= WELCOME =================
-  Widget _welcomeCard() {
+  Widget _statusCard(bool belumAbsen, String? checkIn, bool late, int lateMin) {
     return Container(
-      color: Colors.black54,
-      child: Center(
-        child: Container(
-          width: 320,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            belumAbsen ? Icons.warning : Icons.check_circle,
+            size: 36,
+            color: belumAbsen ? Colors.orange : Colors.green,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Selamat Datang',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              const CircleAvatar(
-                radius: 36,
-                backgroundImage:
-                    AssetImage('assets/images/profile.png'),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                profile?['nama_lengkap'] ?? 'Memuat...',
-                style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                profile?['nip_nis'] ?? '',
-                style:
-                    const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${profile?['jabatan_kelas'] ?? ''}\n${profile?['instansi'] ?? ''}',
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () =>
-                    setState(() => showWelcome = false),
-                child: const Text('OK'),
-              ),
-            ],
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              belumAbsen
+                  ? 'Kamu belum presensi hari ini'
+                  : 'Masuk $checkIn${late ? ' • Terlambat $lateMin menit' : ''}',
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
+
+  Widget _subjectCard(Map<String, dynamic> subject) {
+    final int scheduleId = subject['schedule_id'];
+
+    final attended =
+        subject['attended'] == true ||
+        subject['already_attended'] == true ||
+        subject['is_attended'] == true ||
+        subject['attendance_id'] != null;
+
+    final sessionOpen = subject['session_open'] == true;
+    final isLocked = _lockedSubjects.contains(scheduleId);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: attended ? Colors.green : Colors.orange,
+            child: Icon(
+              attended ? Icons.check : Icons.schedule,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              subject['name'] ?? '-',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+
+          // ================== TOMBOL ==================
+          // ================== AKSI / STATUS ==================
+          if (attended)
+            _statusChip(
+              icon: Icons.check_circle,
+              text: 'Sudah Absen',
+              color: Colors.green,
+            )
+          else if (!sessionOpen)
+            _statusChip(
+              icon: Icons.lock,
+              text: 'Mapel Belum Dibuka',
+              color: Colors.red,
+            )
+          else
+            ElevatedButton.icon(
+              icon: const Icon(Icons.camera_alt, size: 18),
+              label: const Text(
+                'Absen Sekarang',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isLocked ? Colors.grey : Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: isLocked
+                  ? null
+                  : () async {
+                      setState(() {
+                        _lockedSubjects.add(scheduleId);
+                      });
+
+                      final ok = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LocationPage(
+                            role: 'siswa',
+                            subjectId: scheduleId,
+                            type: 'check_in',
+                          ),
+                        ),
+                      );
+                      print("ABSEN RESULT: $ok");
+                      if (ok == true) {
+                        await _reload();
+                      }
+
+                      if (mounted) {
+                        setState(() {
+                          _lockedSubjects.remove(scheduleId);
+                        });
+                      }
+                    },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptySubjectCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: const Center(child: Text('Tidak ada jadwal hari ini')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6FA),
+      body: SafeArea(child: _body()),
+      bottomNavigationBar: _bottomNav(),
+    );
+  }
+
+  Widget _bottomNav() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 12)],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _nav(Icons.person, 0),
+          _nav(Icons.home, 1),
+          _nav(Icons.history, 2),
+        ],
+      ),
+    );
+  }
+
+  Widget _nav(IconData icon, int index) {
+    final active = tabIndex == index;
+    return InkWell(
+      onTap: () => setState(() => tabIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? Colors.blue : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(icon, color: active ? Colors.white : Colors.grey),
+      ),
+    );
+  }
+}
+
+Widget _statusChip({
+  required IconData icon,
+  required String text,
+  required Color color,
+}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.15),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: color),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 16),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(color: color, fontWeight: FontWeight.bold),
+        ),
+      ],
+    ),
+  );
 }

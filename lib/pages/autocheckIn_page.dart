@@ -7,153 +7,127 @@ import 'package:facereq_mobile/core/api_service.dart';
 import 'package:facereq_mobile/core/location_service.dart';
 
 class AutoCheckInPage extends StatefulWidget {
-  const AutoCheckInPage({super.key});
+  final String role; // 'student' | 'teacher'
+  final int? subjectId; // scheduleId untuk student
+
+  const AutoCheckInPage({super.key, required this.role, this.subjectId});
 
   @override
   State<AutoCheckInPage> createState() => _AutoCheckInPageState();
 }
 
 class _AutoCheckInPageState extends State<AutoCheckInPage> {
-  static const MethodChannel _channel =
-      MethodChannel('face_recognition');
+  static const MethodChannel _channel = MethodChannel('face_recognition');
 
-  CameraController? _cameraController;
+  CameraController? _controller;
   bool _loading = true;
   bool _processing = false;
+  bool _disposed = false;
 
-  // ================= INIT =================
   @override
   void initState() {
     super.initState();
     _initCamera();
   }
 
-  // ================= INIT CAMERA =================
   Future<void> _initCamera() async {
     try {
       final cameras = await availableCameras();
-      final frontCamera = cameras.firstWhere(
+      final front = cameras.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
       );
 
-      _cameraController = CameraController(
-        frontCamera,
+      _controller = CameraController(
+        front,
         ResolutionPreset.medium,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
+      await _controller!.initialize();
 
-      await _cameraController!.initialize();
+      await _channel.invokeMethod('setMode', {'mode': 'absen'});
+      await _channel.invokeMethod('resetLiveness');
 
       if (!mounted) return;
       setState(() => _loading = false);
-
-      // kasih jeda biar kamera stabil
-      await Future.delayed(const Duration(milliseconds: 700));
+      await Future.delayed(const Duration(milliseconds: 600));
       _autoCheckIn();
-    } catch (e) {
-      _showError('Gagal membuka kamera');
+    } catch (_) {
+      _error('Gagal membuka kamera');
     }
   }
 
-  // ================= AUTO CHECK IN =================
   Future<void> _autoCheckIn() async {
-    if (_processing ||
-        _cameraController == null ||
-        !_cameraController!.value.isInitialized) return;
+    if (_processing || _controller == null || !_controller!.value.isInitialized || _disposed) return;
 
     _processing = true;
     setState(() => _loading = true);
 
     try {
-      // 1️⃣ AMBIL FOTO
-      final XFile photo = await _cameraController!.takePicture();
-      final Uint8List imageBytes =
-          await File(photo.path).readAsBytes();
+      final photo = await _controller!.takePicture();
+      final Uint8List imageBytes = await File(photo.path).readAsBytes();
 
-      // 2️⃣ FACE + LIVENESS + EMBEDDING (ANDROID NATIVE)
-      final Map result = await _channel.invokeMethod(
-        'getEmbedding',
-        {'image': imageBytes},
+      final Map<String, dynamic> embedResult = Map<String, dynamic>.from(
+        await _channel.invokeMethod('getEmbedding', {'image': imageBytes}),
       );
 
-      if (result['liveness'] != true) {
-        throw Exception('Liveness check gagal');
+      final List<double> embedding = (embedResult['embedding'] as List).map((e) => (e as num).toDouble()).toList();
+      final verify = await ApiService.verifyFace(embedding);
+      if (verify['status'] != true) throw Exception('Wajah tidak dikenali');
+
+      final position = await LocationService.getCurrentLocation();
+
+      if (widget.role == 'student') {
+        if (widget.subjectId == null) throw Exception('scheduleId tidak ditemukan');
+        await ApiService.studentCheckIn(
+          scheduleId: widget.subjectId!,
+          latitude: position.latitude,
+          longitude: position.longitude,
+          photoBytes: imageBytes,
+        );
+      } else {
+        await ApiService.teacherCheckIn(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
       }
-
-      final List<double> embedding =
-          List<double>.from(result['embedding']);
-
-      // 3️⃣ VERIFIKASI WAJAH (API)
-      final verifyResult =
-          await ApiService.verifyFace(embedding);
-
-      if (verifyResult['status'] != true) {
-        throw Exception('Wajah tidak cocok');
-      }
-
-      // 4️⃣ AMBIL GPS
-      final position =
-          await LocationService.getCurrentLocation();
-
-      // 5️⃣ CHECK-IN
-      await ApiService.checkIn(
-        latitude: position.latitude,
-        longitude: position.longitude,
-        photoBytes: imageBytes,
-      );
 
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Check-in berhasil ✅'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Presensi berhasil ✅'), backgroundColor: Colors.green),
       );
-
       Navigator.pop(context);
-    } on PlatformException catch (e) {
-      _showError(e.message ?? 'Face recognition error');
     } catch (e) {
-      _showError(e.toString());
+      _error(e.toString().replaceAll('Exception: ', ''));
     } finally {
       _processing = false;
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  // ================= UI =================
+  void _error(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+    Navigator.pop(context);
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _controller?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: _loading
-            ? const CircularProgressIndicator(
-                color: Colors.white,
-              )
-            : CameraPreview(_cameraController!),
+        child: _loading ? const CircularProgressIndicator(color: Colors.white) : CameraPreview(_controller!),
       ),
     );
-  }
-
-  // ================= ERROR HANDLER =================
-  void _showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  // ================= DISPOSE =================
-  @override
-  void dispose() {
-    _cameraController?.dispose();
-    super.dispose();
   }
 }

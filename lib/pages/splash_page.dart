@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../core/auth_storage.dart';
+import '../core/api_service.dart';
+import 'home_page.dart';
 import 'login_page.dart';
 
 class SplashPage extends StatefulWidget {
@@ -12,51 +15,69 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 5), () {
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    final token = await AuthStorage.getToken();
+    if (!mounted) return;
+
+    if (token == null) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginPage()),
       );
-    });
+      return;
+    }
+
+    try {
+      
+      await ApiService.profile();
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } catch (e) {
+      // 🔥 TOKEN EXPIRED / INVALID
+      await AuthStorage.clear();
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B5ED7), // biru sesuai desain
+      backgroundColor: const Color(0xFF0B5ED7),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // LOGO
             Image.asset(
               'assets/images/logo.png',
               width: 120,
-              height: 120,
             ),
-
             const SizedBox(height: 24),
-
-            // TEXT 1
             const Text(
-              'Absensi Online',
+              'SIPRES',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
               ),
             ),
-
             const SizedBox(height: 6),
-
-            // TEXT 2
             const Text(
-              'Aparatur Sipil Negara',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              'SMK Negeri 1 Tamananan',
+              style: TextStyle(color: Colors.white70),
             ),
           ],
         ),

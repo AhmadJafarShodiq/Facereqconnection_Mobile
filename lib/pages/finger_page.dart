@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/biometric_service.dart';
+import '../core/auth_storage.dart';
 import 'home_page.dart';
+import 'home_guru_page.dart';
 
 class FingerPage extends StatefulWidget {
   const FingerPage({super.key});
@@ -23,19 +25,26 @@ class _FingerPageState extends State<FingerPage> {
     _isAuthenticating = true;
 
     final ok = await BiometricService.authenticate();
-
     _isAuthenticating = false;
+
+    if (!mounted || !ok) return;
+
+    final user = await AuthStorage.getUser();
+    final role = user?['role'];
 
     if (!mounted) return;
 
-    if (ok) {
+    if (role == 'guru') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeGuruPage()),
+      );
+    } else {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     }
-    // ❌ JANGAN pop / keluar
-    // kalau gagal → tetap di halaman fingerprint
   }
 
   @override

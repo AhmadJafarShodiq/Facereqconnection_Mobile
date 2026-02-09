@@ -2,6 +2,7 @@ package com.example.facereq_mobile
 
 import android.graphics.*
 import android.os.SystemClock
+import android.util.Log
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -23,10 +24,15 @@ class MainActivity : FlutterFragmentActivity() {
     private lateinit var imageFaceLandmarker: FaceLandmarker
     private lateinit var interpreter: Interpreter
 
+    // 🔥 MODE: register | absen
+    private var mode: String = "register"
+
     private var blinkState = 0
     private var blinkPassed = false
     private var headPassed = false
     private var lastYaw: Float? = null
+
+    private var lastLandmarks: List<NormalizedLandmark>? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -38,6 +44,12 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
+
+                    "setMode" -> {
+                        mode = call.argument<String>("mode") ?: "register"
+                        resetLiveness()
+                        result.success(true)
+                    }
 
                     "resetLiveness" -> {
                         resetLiveness()
@@ -54,17 +66,28 @@ class MainActivity : FlutterFragmentActivity() {
 
                         processLiveness(bitmap)
 
+                        val landmarks = lastLandmarks?.map {
+                            mapOf("x" to it.x(), "y" to it.y())
+                        }
+
+                        val livenessOk = when (mode) {
+                            "register" -> blinkPassed && headPassed
+                            "absen" -> true
+                            else -> false
+                        }
+
                         result.success(
                             mapOf(
                                 "blink" to blinkPassed,
                                 "head" to headPassed,
-                                "liveness" to (blinkPassed && headPassed)
+                                "liveness" to livenessOk,
+                                "landmarks" to landmarks
                             )
                         )
                     }
 
                     "getEmbedding" -> {
-                        if (!(blinkPassed && headPassed)) {
+                        if (mode == "register" && !(blinkPassed && headPassed)) {
                             return@setMethodCallHandler result.error("LIVENESS_FAIL", null, null)
                         }
 
@@ -85,6 +108,8 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             }
     }
+
+    // ================= LANDMARK =================
 
     private fun initLiveLandmarker() {
         liveFaceLandmarker = FaceLandmarker.createFromOptions(
@@ -125,10 +150,15 @@ class MainActivity : FlutterFragmentActivity() {
     private fun handleLandmark(result: FaceLandmarkerResult) {
         if (result.faceLandmarks().isEmpty()) return
         val l = result.faceLandmarks()[0]
+        lastLandmarks = l
 
-        if (!blinkPassed) blinkPassed = checkBlink(l)
-        if (!headPassed) headPassed = checkHeadMove(l)
+        if (mode == "register") {
+            if (!blinkPassed) blinkPassed = checkBlink(l)
+            if (!headPassed) headPassed = checkHeadMove(l)
+        }
     }
+
+    // ================= LIVENESS =================
 
     private fun checkBlink(l: List<NormalizedLandmark>): Boolean {
         val left = abs(l[159].y() - l[145].y())
@@ -159,32 +189,43 @@ class MainActivity : FlutterFragmentActivity() {
         blinkPassed = false
         headPassed = false
         lastYaw = null
+        lastLandmarks = null
     }
 
-    private fun cropFace(bitmap: Bitmap): Bitmap? {
-        val image = BitmapImageBuilder(bitmap).build()
-        val result = imageFaceLandmarker.detect(image)
-        if (result.faceLandmarks().isEmpty()) return null
+    // ================= FACE =================
 
-        val l = result.faceLandmarks()[0]
-        var minX = 1f; var minY = 1f; var maxX = 0f; var maxY = 0f
+   private fun cropFace(bitmap: Bitmap): Bitmap? {
+    val image = BitmapImageBuilder(bitmap).build()
+    val result = imageFaceLandmarker.detect(image)
 
-        l.forEach {
-            minX = minOf(minX, it.x())
-            minY = minOf(minY, it.y())
-            maxX = maxOf(maxX, it.x())
-            maxY = maxOf(maxY, it.y())
-        }
-
-        val x = (minX * bitmap.width).toInt().coerceAtLeast(0)
-        val y = (minY * bitmap.height).toInt().coerceAtLeast(0)
-        val w = ((maxX - minX) * bitmap.width).toInt()
-        val h = ((maxY - minY) * bitmap.height).toInt()
-
-        return if (w > 0 && h > 0)
-            Bitmap.createBitmap(bitmap, x, y, w, h)
-        else null
+    if (result.faceLandmarks().isEmpty()) {
+        Log.e("CropFace", "No face detected")
+        return null
     }
+
+    val l = result.faceLandmarks()[0]
+    var minX = 1f; var minY = 1f; var maxX = 0f; var maxY = 0f
+
+    l.forEach {
+        minX = minOf(minX, it.x())
+        minY = minOf(minY, it.y())
+        maxX = maxOf(maxX, it.x())
+        maxY = maxOf(maxY, it.y())
+    }
+
+    val x = (minX * bitmap.width).toInt().coerceAtLeast(0)
+    val y = (minY * bitmap.height).toInt().coerceAtLeast(0)
+    val w = ((maxX - minX) * bitmap.width).toInt()
+    val h = ((maxY - minY) * bitmap.height).toInt()
+
+    // 🔥 CEK VALIDITAS
+    if (w <= 0 || h <= 0 || x + w > bitmap.width || y + h > bitmap.height) {
+        Log.e("CropFace", "Invalid bounding box: x=$x y=$y w=$w h=$h bitmapWidth=${bitmap.width} bitmapHeight=${bitmap.height}")
+        return null
+    }
+
+    return Bitmap.createBitmap(bitmap, x, y, w, h)
+}
 
     private fun fixRotation(bitmap: Bitmap): Bitmap {
         val matrix = Matrix().apply { postRotate(270f) }

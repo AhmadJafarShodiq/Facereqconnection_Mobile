@@ -25,53 +25,70 @@ class _LoginPageState extends State<LoginPage> {
     passController.dispose();
     super.dispose();
   }
+Future<void> handleLogin() async {
+  if (usernameController.text.isEmpty || passController.text.isEmpty) return;
 
-  Future<void> handleLogin() async {
-    if (usernameController.text.isEmpty || passController.text.isEmpty) return;
+  setState(() => loading = true);
 
-    setState(() => loading = true);
+  try {
+    // 1️⃣ LOGIN
+    await ApiService.login(
+      usernameController.text.trim(),
+      passController.text.trim(),
+    );
 
-    try {
-      await ApiService.login(
-        usernameController.text.trim(),
-        passController.text.trim(),
+    if (!mounted) return;
+
+    // 2️⃣ CEK STATUS WAJAH (FINAL)
+    final face = await ApiService.faceStatus();
+    final bool registered = face['registered'] == true;
+    final bool verified = face['verified'] == true;
+
+    if (!mounted) return;
+
+    // 3️⃣ FLOW SESUAI BACKEND
+    if (!registered) {
+      // ❌ BELUM DAFTAR WAJAH
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const RegisterFacePage()),
       );
 
-      if (!mounted) return;
-
-      final hasFace = await ApiService.faceStatus();
-
-      if (!mounted) return;
-
-      if (!hasFace) {
-        // 🔥 PUSH BIASA, BUKAN REPLACEMENT
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const RegisterFacePage()),
-        );
-
-        // setelah register berhasil
-        if (result == true && mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const FingerPage()),
-          );
-        }
-      } else {
-        // ✅ SUDAH DAFTAR → LANGSUNG ABSEN
+      if (result == true && mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const FingerPage()),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-      );
-    } finally {
-      if (mounted) setState(() => loading = false);
+      return;
     }
+
+    if (!verified) {
+      // ❌ SUDAH DAFTAR, BELUM VERIFY
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const FingerPage()),
+      );
+      return;
+    }
+
+    // ✅ SUDAH VERIFIED
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const HomePage()),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          e.toString().replaceAll('Exception: ', ''),
+        ),
+      ),
+    );
+  } finally {
+    if (mounted) setState(() => loading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {

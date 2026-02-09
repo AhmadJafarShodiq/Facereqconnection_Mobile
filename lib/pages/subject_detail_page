@@ -1,0 +1,218 @@
+import 'package:flutter/material.dart';
+import '../core/api_service.dart';
+
+/// ===============================
+/// PAGE
+/// ===============================
+class SubjectDetailPage extends StatefulWidget {
+  final Map<String, dynamic> subject;
+  final int classId;
+
+  const SubjectDetailPage({
+    super.key,
+    required this.subject,
+    required this.classId,
+  });
+
+  @override
+  State<SubjectDetailPage> createState() => _SubjectDetailPageState();
+}
+
+/// ===============================
+/// STATE
+/// ===============================
+class _SubjectDetailPageState extends State<SubjectDetailPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tab;
+
+  List<Map<String, dynamic>> missing = [];
+  List<Map<String, dynamic>> present = [];
+
+  bool loading = true;
+
+  int get subjectId =>
+      widget.subject['id'] ?? widget.subject['subject_id'] ?? 0;
+
+  int get classId => widget.classId;
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
+
+  /// ===============================
+  /// LOAD DATA
+  /// ===============================
+  Future<void> _load() async {
+    setState(() => loading = true);
+
+    try {
+      final res = await ApiService.studentAttendanceBySubject(
+        subjectId: subjectId,
+        classId: classId,
+      );
+
+      present = List<Map<String, dynamic>>.from(res['present'] ?? []);
+      missing = List<Map<String, dynamic>>.from(res['missing'] ?? []);
+    } catch (e) {
+      present = [];
+      missing = [];
+    }
+
+    if (mounted) setState(() => loading = false);
+  }
+
+  /// ===============================
+  /// PERCENT
+  /// ===============================
+  double get percent {
+    final total = present.length + missing.length;
+    if (total == 0) return 0;
+    return (present.length / total) * 100;
+  }
+
+  /// ===============================
+  /// UI
+  /// ===============================
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.subject['name'] ?? 'Detail Mapel'),
+        bottom: TabBar(
+          controller: _tab,
+          tabs: const [
+            Tab(text: 'Belum Absen'),
+            Tab(text: 'Sudah Absen'),
+          ],
+        ),
+      ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: Column(
+                children: [
+                  _statsHeader(),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tab,
+                      children: [
+                        _list(missing, 'Semua siswa sudah absen'),
+                        _list(present, 'Belum ada siswa absen'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  /// ===============================
+  /// HEADER STATISTIK
+  /// ===============================
+  Widget _statsHeader() {
+    final total = present.length + missing.length;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Statistik Kehadiran',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _miniStat('Hadir', present.length, Colors.green),
+              _miniStat('Belum', missing.length, Colors.red),
+              _miniStat('Total', total, Colors.blue),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: percent / 100,
+              minHeight: 10,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text('${percent.toStringAsFixed(0)}% hadir'),
+        ],
+      ),
+    );
+  }
+
+  /// ===============================
+  /// MINI STAT
+  /// ===============================
+  Widget _miniStat(String title, int value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(title),
+      ],
+    );
+  }
+
+  /// ===============================
+  /// LIST SISWA
+  /// ===============================
+  Widget _list(List<Map<String, dynamic>> data, String empty) {
+    if (data.isEmpty) {
+      return ListView(
+        children: [
+          const SizedBox(height: 300),
+          Center(child: Text(empty)),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: data.length,
+      itemBuilder: (_, i) {
+        final s = data[i];
+        return Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.person)),
+            title: Text(s['nama'] ?? s['nama_lengkap'] ?? '-'),
+            subtitle: Text(
+              s['nis']?.toString() ??
+                  s['nip_nis']?.toString() ??
+                  '',
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
