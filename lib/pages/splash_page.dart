@@ -19,7 +19,7 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 8));
 
     final token = await AuthStorage.getToken();
     if (!mounted) return;
@@ -62,19 +62,19 @@ class _SplashPageState extends State<SplashPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/logo.png',
-              width: 120,
+              'assets/images/logosmk.png',
+              width: 80,
             ),
             const SizedBox(height: 24),
-            const Text(
-              'SIPRES',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
+            // const Text(
+            //   'SIPRES',
+            //   style: TextStyle(
+            //     color: Colors.white,
+            //     fontSize: 20,
+            //     fontWeight: FontWeight.w600,
+            //   ),
+            // ),
+            // const SizedBox(height: 6),
             const Text(
               'SMK Negeri 1 Tamananan',
               style: TextStyle(color: Colors.white70),

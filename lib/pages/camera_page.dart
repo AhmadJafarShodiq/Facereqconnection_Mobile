@@ -1,6 +1,9 @@
 import 'dart:typed_data';
+import 'dart:math';
+import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:facereq_mobile/core/api_service.dart';
 import 'confirm_face_page.dart';
@@ -9,6 +12,7 @@ class CameraPage extends StatefulWidget {
   final String role;
   final int? subjectId;
   final String type;
+
   const CameraPage({
     super.key,
     required this.role,
@@ -20,15 +24,18 @@ class CameraPage extends StatefulWidget {
   State<CameraPage> createState() => _CameraPageState();
 }
 
-class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
+class _CameraPageState extends State<CameraPage>
+    with WidgetsBindingObserver {
   static const MethodChannel _channel = MethodChannel('face_recognition');
 
+  late final Ticker _ticker;
+  double _t = 0;
+
   CameraController? _controller;
-  bool _captured = false;
   bool _processing = false;
-  bool _disposed = false;
-  bool _streamStopped = false;
+  bool _captured = false;
   bool _takingPicture = false;
+  bool _disposed = false;
 
   String _hint = "Arahkan wajah ke kamera";
   List<Map<String, double>> _landmarks = [];
@@ -38,29 +45,20 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initCamera();
+
+    _ticker = Ticker((elapsed) {
+      _t = elapsed.inMilliseconds / 1000;
+      if (mounted) setState(() {});
+    })..start();
   }
 
   @override
   void dispose() {
     _disposed = true;
+    _ticker.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    _stopStream();
     _controller?.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (_controller == null || !_controller!.value.isInitialized) return;
-
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) {
-      await _stopStream();
-      await _controller?.pausePreview();
-    } else if (state == AppLifecycleState.resumed) {
-      await _controller?.resumePreview();
-      if (!_disposed) await _startStream();
-    }
   }
 
   Future<void> _initCamera() async {
@@ -79,50 +77,23 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     await _controller!.initialize();
     await _channel.invokeMethod('setMode', {'mode': 'absen'});
     await _channel.invokeMethod('resetLiveness');
-    await _startStream();
+    await _controller!.startImageStream(_onFrame);
 
     if (mounted) setState(() {});
   }
 
-  Future<void> _startStream() async {
-    if (_controller == null ||
-        !_controller!.value.isInitialized ||
-        _controller!.value.isStreamingImages ||
-        _disposed)
-      return;
-
-    _streamStopped = false;
-    await _controller!.startImageStream(_onFrame);
-  }
-
-  Future<void> _stopStream() async {
-    if (_streamStopped) return;
-    if (_controller != null && _controller!.value.isStreamingImages) {
-      try {
-        _streamStopped = true;
-        await _controller!.stopImageStream();
-        await Future.delayed(const Duration(milliseconds: 200));
-      } catch (_) {}
-    }
-  }
-
   Future<void> _onFrame(CameraImage image) async {
-    if (_disposed || !mounted) return;
-    if (_processing || _captured || _takingPicture) return;
+    if (_disposed || _processing || _captured || _takingPicture) return;
 
     _processing = true;
     try {
-      final bytes = image.planes[0].bytes;
-
       final res = await _channel.invokeMethod('processFrame', {
-        'image': bytes,
+        'image': image.planes[0].bytes,
         'mirror': true,
       });
 
-      if (!mounted || _disposed) return;
-
       final landmarksRaw = res['landmarks'];
-      if (landmarksRaw == null || (landmarksRaw as List).isEmpty) {
+      if (landmarksRaw == null || landmarksRaw.isEmpty) {
         _landmarks.clear();
         _hint = "Arahkan wajah ke kamera";
         setState(() {});
@@ -130,115 +101,77 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
       }
 
       _landmarks = List<Map<String, double>>.from(
-        landmarksRaw.map(
-          (e) => {
-            'x': (e['x'] as num).toDouble(),
-            'y': (e['y'] as num).toDouble(),
-          },
-        ),
+        landmarksRaw.map((e) => {
+              'x': (e['x'] as num).toDouble(),
+              'y': (e['y'] as num).toDouble(),
+            }),
       );
 
+      _captured = true;
+      _hint = "Memverifikasi wajah...";
       setState(() {});
 
-      if (!_captured) {
-        _captured = true;
-        _hint = "Memverifikasi wajah...";
-        setState(() {});
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (!_disposed) await _captureAndVerify();
-      }
+      await Future.delayed(const Duration(milliseconds: 400));
+      await _captureAndVerify();
     } finally {
       _processing = false;
     }
   }
 
- Future<void> _captureAndVerify() async {
-  if (_takingPicture) return;
-  _takingPicture = true;
+  Future<void> _captureAndVerify() async {
+    if (_takingPicture || _controller == null) return;
+    _takingPicture = true;
 
-  try {
-    if (_controller!.value.isStreamingImages) {
+    try {
       await _controller!.stopImageStream();
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
 
-    if (!_controller!.value.isInitialized) return;
+      final photo = await _controller!.takePicture();
+      final bytes = await photo.readAsBytes();
 
-    final photo = await _controller!.takePicture();
-    final bytes = await photo.readAsBytes();
-
-    final result = Map<String, dynamic>.from(
-      await _channel.invokeMethod('getEmbedding', {'image': bytes}),
-    );
-
-    final embedding = (result['embedding'] as List)
-        .map((e) => (e as num).toDouble())
-        .toList();
-
-    final verify = await ApiService.verifyFace(embedding);
-
-    if (verify == null || verify['status'] != true) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Wajah tidak dikenali'),
-          backgroundColor: Colors.red,
-        ),
+      final result = Map<String, dynamic>.from(
+        await _channel.invokeMethod('getEmbedding', {'image': bytes}),
       );
 
-      _captured = false;
-      _takingPicture = false;
-      _hint = "Arahkan wajah ke kamera";
-      await _startStream(); // restart stream
-      return;
-    }
+      final embedding = (result['embedding'] as List)
+          .map((e) => (e as num).toDouble())
+          .toList();
 
-    if (!mounted) return;
+      final verify = await ApiService.verifyFace(embedding);
 
-    // Lanjut ke ConfirmFacePage
-    final ok = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ConfirmFacePage(
-          photoBytes: bytes,
-          name: verify['name'] ?? 'Pengguna',
-          similarity: double.parse(verify['similarity'].toString()),
-          role: widget.role,
-          subjectId: widget.subjectId,
-          type: widget.type,
+      if (!mounted || verify == null || verify['status'] != true) {
+        _captured = false;
+        _hint = "Wajah tidak dikenali";
+        await _controller!.startImageStream(_onFrame);
+        setState(() {});
+        return;
+      }
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConfirmFacePage(
+            photoBytes: bytes,
+            name: verify['name'] ?? 'Pengguna',
+            similarity: double.parse(verify['similarity'].toString()),
+            role: widget.role,
+            subjectId: widget.subjectId,
+            type: widget.type,
+          ),
         ),
-      ),
-    );
-
-    // Reset untuk absen mapel selanjutnya
-    if (mounted) {
-      _captured = false;
+      );
+    } finally {
       _takingPicture = false;
-      _hint = "Arahkan wajah ke kamera";
-      _landmarks.clear();
-      await _startStream();
     }
-
-    if (ok == true && mounted) {
-      Navigator.pop(context, true);
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  } finally {
-    _takingPicture = false;
   }
-}
 
   @override
   Widget build(BuildContext context) {
     if (_controller == null || !_controller!.value.isInitialized) {
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
       );
     }
 
@@ -259,7 +192,11 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
           Transform.scale(
             scale: scale,
             child: CustomPaint(
-              painter: FaceLandmarkPainter(_landmarks, mirror: true),
+              painter: FaceLandmarkPainter(
+                _landmarks,
+                mirror: true,
+                t: _t,
+              ),
             ),
           ),
           Positioned(
@@ -268,10 +205,8 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(20),
@@ -292,28 +227,84 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   }
 }
 
+// ================= LANDMARK PAINTER (AI SCAN FINAL) =================
+
+// ================= LANDMARK PAINTER (AI SCAN FINAL) =================
 class FaceLandmarkPainter extends CustomPainter {
   final List<Map<String, double>> landmarks;
   final bool mirror;
+  final bool active;
+  final double t; // tambahkan ini
 
-  FaceLandmarkPainter(this.landmarks, {this.mirror = false});
+  FaceLandmarkPainter(
+    this.landmarks, {
+    this.mirror = false,
+    this.active = true,
+    this.t = 0, // default value
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.blueAccent
-      ..style = PaintingStyle.fill;
+    if (landmarks.isEmpty) return;
 
-    for (final lm in landmarks) {
-      final x = mirror ? (1 - lm['x']!) : lm['x']!;
-      canvas.drawCircle(
-        Offset(x * size.width, lm['y']! * size.height),
-        2,
-        paint,
-      );
+    // ===== FACE CENTER (DIHALUSKAN KE TENGAH LAYAR) =====
+    final faceCenter = _faceCenter(size);
+    final screenCenter = Offset(size.width / 2, size.height / 2);
+
+    // blend biar ga terlalu ngikut landmark (lebih stabil)
+    final center = Offset(
+      lerpDouble(faceCenter.dx, screenCenter.dx, 0.35)!,
+      lerpDouble(faceCenter.dy, screenCenter.dy, 0.35)!,
+    );
+
+    // ===== SOFT MASK =====
+    final maskPaint = Paint()
+      ..color = Colors.black.withOpacity(0.25);
+
+    final maskPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addOval(
+        Rect.fromCenter(
+          center: center,
+          width: 260,
+          height: 340,
+        ),
+      )
+      ..fillType = PathFillType.evenOdd;
+
+    canvas.drawPath(maskPath, maskPaint);
+
+    // ===== LANDMARK MINIMAL =====
+    final dotPaint = Paint()
+      ..color = active
+          ? Colors.cyanAccent.withOpacity(0.7)
+          : Colors.greenAccent.withOpacity(0.9);
+
+    // opsional: bisa pakai t untuk animasi alpha atau blink
+    final alpha = ((sin(t * 2 * pi) + 1) / 2 * 0.7 + 0.3).clamp(0.3, 1.0);
+
+    for (int i = 0; i < landmarks.length; i += 16) {
+      final lm = landmarks[i];
+      final x = mirror ? (1 - (lm['x'] ?? 0)) : (lm['x'] ?? 0);
+      final y = lm['y'] ?? 0;
+      final p = Offset(x * size.width, y * size.height);
+
+      canvas.drawCircle(p, 2, dotPaint..color = dotPaint.color.withOpacity(alpha));
     }
   }
 
+  Offset _faceCenter(Size size) {
+    double x = 0, y = 0;
+    for (final lm in landmarks) {
+      x += mirror ? (1 - (lm['x'] ?? 0)) : (lm['x'] ?? 0);
+      y += lm['y'] ?? 0;
+    }
+    return Offset(
+      (x / landmarks.length) * size.width,
+      (y / landmarks.length) * size.height,
+    );
+  }
+
   @override
-  bool shouldRepaint(covariant FaceLandmarkPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

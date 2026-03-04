@@ -31,7 +31,7 @@ Future<void> handleLogin() async {
   setState(() => loading = true);
 
   try {
-    // 1️⃣ LOGIN
+    // LOGIN
     await ApiService.login(
       usernameController.text.trim(),
       passController.text.trim(),
@@ -39,16 +39,16 @@ Future<void> handleLogin() async {
 
     if (!mounted) return;
 
-    // 2️⃣ CEK STATUS WAJAH (FINAL)
+    // CEK STATUS WAJAH (FINAL)
     final face = await ApiService.faceStatus();
     final bool registered = face['registered'] == true;
     final bool verified = face['verified'] == true;
 
     if (!mounted) return;
 
-    // 3️⃣ FLOW SESUAI BACKEND
+    // FLOW SESUAI BACKEND
     if (!registered) {
-      // ❌ BELUM DAFTAR WAJAH
+      //  BELUM DAFTAR WAJAH
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const RegisterFacePage()),
@@ -64,7 +64,7 @@ Future<void> handleLogin() async {
     }
 
     if (!verified) {
-      // ❌ SUDAH DAFTAR, BELUM VERIFY
+      //  SUDAH DAFTAR, BELUM VERIFY
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const FingerPage()),
@@ -72,7 +72,7 @@ Future<void> handleLogin() async {
       return;
     }
 
-    // ✅ SUDAH VERIFIED
+    // SUDAH VERIFIED
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomePage()),
@@ -100,7 +100,7 @@ Future<void> handleLogin() async {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/images/logo.png', width: 110),
+              Image.asset('assets/images/logosmk.png', width: 80),
 
               const SizedBox(height: 20),
 

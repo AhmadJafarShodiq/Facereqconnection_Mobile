@@ -238,18 +238,50 @@ class FaceLandmarkPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = active ? Colors.greenAccent : Colors.blueAccent
-      ..style = PaintingStyle.fill;
+    // CENTER FIX KE TENGAH LAYAR
+    final center = Offset(size.width / 2, size.height / 2);
 
-    for (final lm in landmarks) {
+    // ===== SOFT MASK (FOCUS FACE) =====
+    final maskPaint = Paint()..color = Colors.black.withOpacity(0.25);
+
+    final maskPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addOval(Rect.fromCenter(center: center, width: 260, height: 340))
+      ..fillType = PathFillType.evenOdd;
+
+    canvas.drawPath(maskPath, maskPaint);
+
+    if (landmarks.isEmpty) return;
+
+    // ===== LANDMARK MINIMAL (STATUS) =====
+    final dotPaint = Paint()
+      ..color = active
+          ? Colors.cyanAccent.withOpacity(0.7)
+          : Colors.greenAccent.withOpacity(0.9);
+
+    for (int i = 0; i < landmarks.length; i += 16) {
+      final lm = landmarks[i];
       final x = mirror ? (1 - lm['x']!) : lm['x']!;
-      final dx = x * size.width;
-      final dy = lm['y']! * size.height;
-      canvas.drawCircle(Offset(dx, dy), 2, paint);
+      final p = Offset(x * size.width, lm['y']! * size.height);
+
+      canvas.drawCircle(p, 2, dotPaint);
     }
   }
 
+  Offset _faceCenter(Size size) {
+    double x = 0, y = 0;
+    for (final lm in landmarks) {
+      x += mirror ? (1 - lm['x']!) : lm['x']!;
+      y += lm['y']!;
+    }
+    return Offset(
+      (x / landmarks.length) * size.width,
+      (y / landmarks.length) * size.height,
+    );
+  }
+
   @override
-  bool shouldRepaint(covariant FaceLandmarkPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+
+

@@ -107,6 +107,9 @@ final ok = await Navigator.push(
     ),
   ),
 );
+if (ok == true && mounted) {
+  Navigator.pop(context, true);
+}
   }
 
   double _calculateDistance(

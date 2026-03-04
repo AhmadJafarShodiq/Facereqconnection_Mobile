@@ -1,3 +1,5 @@
+import 'package:facereq_mobile/pages/home_guru_page.dart';
+import 'package:facereq_mobile/pages/home_page.dart';
 import 'package:flutter/material.dart';
 
 class SummaryPage extends StatelessWidget {
@@ -39,8 +41,18 @@ class SummaryPage extends StatelessWidget {
             Text('Similarity: ${similarity.toStringAsFixed(2)}%'),
             const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: () =>
-                  Navigator.pop(context, true),
+         onPressed: () {
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(
+      builder: (_) => role == 'guru'
+          ? const HomeGuruPage()
+          : const HomePage(),
+    ),
+    (route) => false,
+  );
+},
+
               child: const Text('Kembali ke Home'),
             ),
           ],

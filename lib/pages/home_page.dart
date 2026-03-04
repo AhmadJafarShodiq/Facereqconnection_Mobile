@@ -1,4 +1,6 @@
 // LOGIKA TIDAK DIUBAH — HANYA TAMPILAN + AUTO REFRESH
+import 'dart:math';
+
 import 'package:facereq_mobile/pages/home_guru_page.dart';
 import 'package:facereq_mobile/pages/location_check_page.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,8 @@ import '../core/auth_storage.dart';
 import '../core/api_service.dart';
 import 'history_page.dart';
 import 'profile_page.dart';
+import 'register_face_page.dart';
+import 'finger_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -59,15 +63,45 @@ class _HomePageState extends State<HomePage> {
     if (mounted) setState(() => loading = false);
   }
 
-  Future<void> _checkFace() async {
-    try {
-      final res = await ApiService.faceStatus();
-      faceVerified = res['verified'] == true;
-    } catch (_) {
-      faceVerified = false;
+Future<void> _checkFace() async {
+  if (!mounted) return;
+
+  try {
+    final res = await ApiService.faceStatus();
+    print('FACE STATUS: $res');
+
+    final registered = res['registered'] == true;
+    faceVerified = registered;
+
+    if (mounted) setState(() {});
+    await _openCamp(registered);
+  } catch (e) {
+    if (mounted) await _openCamp(false);
+  }
+}
+Future<void> _openCamp(bool registered) async {
+  if (!mounted) return;
+
+  if (!registered) {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const RegisterFacePage()),
+    );
+
+    if (!mounted) return;
+
+    if (result == true) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const FingerPage()),
+      );
     }
+    return;
   }
 
+
+}
+ 
   Future<void> _loadAttendance() async {
     try {
       attendanceToday = await ApiService.todayAttendance();
@@ -359,21 +393,31 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _nav(IconData icon, int index) {
-    final active = tabIndex == index;
-    return InkWell(
-      onTap: () => setState(() => tabIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? Colors.blue : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Icon(icon, color: active ? Colors.white : Colors.grey),
+ Widget _nav(IconData icon, int index) {
+  final active = tabIndex == index;
+
+  return InkWell(
+    onTap: () async {
+      if (tabIndex != index) {
+        setState(() => tabIndex = index);
+
+        // 🔥 AUTO REFRESH saat balik ke HOME
+        if (index == 1) {
+          await _reload();
+        }
+      }
+    },
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      decoration: BoxDecoration(
+        color: active ? Colors.blue : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
       ),
-    );
-  }
+      child: Icon(icon, color: active ? Colors.white : Colors.grey),
+    ),
+  );
+}
 }
 
 Widget _statusChip({

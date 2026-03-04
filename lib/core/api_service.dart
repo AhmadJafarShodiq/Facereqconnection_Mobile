@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'auth_storage.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.103:8000/api';
+  static const String baseUrl = 'http://face.siface.my.id/api';
 
   static Future<Map<String, String>> _headers() async {
     final token = await AuthStorage.getToken();
@@ -169,45 +169,45 @@ class ApiService {
     return List<Map<String, dynamic>>.from(data);
   }
 
- static Future<Map<String, dynamic>> studentCheckIn({
-  required int scheduleId, // sebelumnya subjectId
-  required double latitude,
-  required double longitude,
-  Uint8List? photoBytes,
-}) async {
-  final token = await AuthStorage.getToken();
-  if (token == null) throw Exception('Token tidak ditemukan');
+  static Future<Map<String, dynamic>> studentCheckIn({
+    required int scheduleId, // sebelumnya subjectId
+    required double latitude,
+    required double longitude,
+    Uint8List? photoBytes,
+  }) async {
+    final token = await AuthStorage.getToken();
+    if (token == null) throw Exception('Token tidak ditemukan');
 
-  final request = http.MultipartRequest(
-    'POST',
-    Uri.parse('$baseUrl/attendance/student'),
-  );
-
-  request.headers['Authorization'] = 'Bearer $token';
-  request.headers['Accept'] = 'application/json';
-
-  request.fields.addAll({
-    'schedule_id': scheduleId.toString(), // wajib sesuai backend
-    'latitude': latitude.toString(),
-    'longitude': longitude.toString(),
-  });
-
-  if (photoBytes != null) {
-    request.files.add(
-      http.MultipartFile.fromBytes('foto', photoBytes, filename: 'absen.jpg'),
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/attendance/student'),
     );
+
+    request.headers['Authorization'] = 'Bearer $token';
+    request.headers['Accept'] = 'application/json';
+
+    request.fields.addAll({
+      'schedule_id': scheduleId.toString(), // wajib sesuai backend
+      'latitude': latitude.toString(),
+      'longitude': longitude.toString(),
+    });
+
+    if (photoBytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes('foto', photoBytes, filename: 'absen.jpg'),
+      );
+    }
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+    final data = jsonDecode(body);
+
+    if (response.statusCode != 200 || data['status'] != true) {
+      throw Exception(data['message'] ?? 'Presensi gagal');
+    }
+
+    return Map<String, dynamic>.from(data['data'] ?? data);
   }
-
-  final response = await request.send();
-  final body = await response.stream.bytesToString();
-  final data = jsonDecode(body);
-
-  if (response.statusCode != 200 || data['status'] != true) {
-    throw Exception(data['message'] ?? 'Presensi gagal');
-  }
-
-  return Map<String, dynamic>.from(data['data'] ?? data);
-}
 
   static Future<Map<String, dynamic>> teacherCheckIn({
     required double latitude,
@@ -246,9 +246,7 @@ class ApiService {
     required int classId,
   }) async {
     final res = await http.get(
-      Uri.parse(
-        '$baseUrl/attendance/subject/$subjectId/$classId/missing',
-      ),
+      Uri.parse('$baseUrl/attendance/subject/$subjectId/$classId/missing'),
       headers: await _headers(),
     );
 
@@ -265,9 +263,7 @@ class ApiService {
     required int classId,
   }) async {
     final res = await http.get(
-      Uri.parse(
-        '$baseUrl/attendance/subject/$subjectId/$classId/today',
-      ),
+      Uri.parse('$baseUrl/attendance/subject/$subjectId/$classId/today'),
       headers: await _headers(),
     );
 
@@ -289,10 +285,7 @@ class ApiService {
       Uri.parse(
         '$baseUrl/attendance/subject/$subjectId/$classId/report',
       ).replace(
-        queryParameters: {
-          'start_date': startDate,
-          'end_date': endDate,
-        },
+        queryParameters: {'start_date': startDate, 'end_date': endDate},
       ),
       headers: await _headers(),
     );
@@ -323,19 +316,19 @@ class ApiService {
     return List<Map<String, dynamic>>.from(body);
   }
 
-static Future<List<Map<String, dynamic>>> guruTodaySchedule() async {
-  final res = await http.get(
-    Uri.parse('$baseUrl/schedules/today'), 
-    headers: await _headers(),
-  );
+  static Future<List<Map<String, dynamic>>> guruTodaySchedule() async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/schedules/today'),
+      headers: await _headers(),
+    );
 
-  if (res.statusCode != 200) {
-    throw Exception('Gagal memuat jadwal guru');
+    if (res.statusCode != 200) {
+      throw Exception('Gagal memuat jadwal guru');
+    }
+
+    final body = jsonDecode(res.body);
+    return List<Map<String, dynamic>>.from(body['data']);
   }
-
-  final body = jsonDecode(res.body);
-  return List<Map<String, dynamic>>.from(body['data']);
-}
 
   static Future<Map<String, dynamic>> openSession(int scheduleId) async {
     final res = await http.post(
@@ -364,17 +357,31 @@ static Future<List<Map<String, dynamic>>> guruTodaySchedule() async {
     }
   }
 
-static Future<Map<String, dynamic>> todaySchedule() async {
-  final res = await http.get(
-    Uri.parse('$baseUrl/schedules/today'),
-    headers: await _headers(),
-  );
+  static Future<bool> cekface() async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/face/status/'),
+      headers: await _headers(),
+    );
 
-  if (res.statusCode != 200) {
-    throw Exception('Gagal memuat jadwal hari ini');
+    final data = jsonDecode(res.body);
+
+    if (res.statusCode == 200 && data['registered'] == false) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
-  return Map<String, dynamic>.from(jsonDecode(res.body));
-}
+  static Future<Map<String, dynamic>> todaySchedule() async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/schedules/today'),
+      headers: await _headers(),
+    );
 
+    if (res.statusCode != 200) {
+      throw Exception('Gagal memuat jadwal hari ini');
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
 }

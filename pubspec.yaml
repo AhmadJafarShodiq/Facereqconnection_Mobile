@@ -44,6 +44,8 @@ flutter:
     # ===== UI ASSETS =====
     - assets/images/logo.png
     - assets/images/profile.png
+    - assets/images/logosmk.png
+
 
     # ===== ANDROID ML ASSETS (WAJIB) =====
     - android/app/src/main/assets/face_landmarker.task
