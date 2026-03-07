@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/api_service.dart';
+import '../core/app_config.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -22,69 +23,50 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Future<void> _loadHistory() async {
     try {
-      setState(() {
-        loading = true;
-        error = null;
-      });
-      history = await ApiService.studentHistory();
+      if (mounted) setState(() => loading = true);
+      final data = await ApiService.studentHistory();
+      if (mounted) {
+        setState(() {
+          history = data;
+          loading = false;
+          error = null;
+        });
+      }
     } catch (e) {
-      error = e.toString();
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  String _formatDate(String? date) {
-    if (date == null || date.isEmpty) return '-';
-    try {
-      return DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
-          .format(DateTime.parse(date));
-    } catch (_) {
-      return '-';
-    }
-  }
-
-  Color _statusColor(String? status) {
-    switch ((status ?? '').toLowerCase()) {
-      case 'hadir':
-        return const Color(0xFF2563EB);
-      case 'terlambat':
-        return Colors.red;
-      case 'pulang':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _statusIcon(String? status) {
-    switch ((status ?? '').toLowerCase()) {
-      case 'hadir':
-        return Icons.check_circle;
-      case 'terlambat':
-        return Icons.warning_amber_rounded;
-      case 'pulang':
-        return Icons.logout;
-      default:
-        return Icons.help_outline;
+      if (mounted) {
+        setState(() {
+          error = e.toString();
+          loading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEFF3FB),
+      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
+        backgroundColor: Colors.white,
         elevation: 0,
-        backgroundColor: const Color(0xFFEFF3FB),
-        foregroundColor: Colors.black,
-        title: const Text(
-          'Riwayat Absensi',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        centerTitle: true,
+        title: Text(
+          'RIWAYAT PRESENSI',
+          style: TextStyle(
+            color: AppConfig.primaryColor,
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            letterSpacing: 2,
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: AppConfig.primaryColor, size: 20),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: RefreshIndicator(
         onRefresh: _loadHistory,
+        color: AppConfig.primaryColor,
         child: _body(),
       ),
     );
@@ -97,7 +79,16 @@ class _HistoryPageState extends State<HistoryPage> {
       return ListView(
         children: [
           const SizedBox(height: 120),
-          Center(child: Text(error!)),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                error!.replaceAll('Exception: ', ''),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
         ],
       );
     }
@@ -108,199 +99,216 @@ class _HistoryPageState extends State<HistoryPage> {
           SizedBox(height: 120),
           Icon(Icons.event_busy, size: 60, color: Colors.grey),
           SizedBox(height: 12),
-          Center(child: Text('Belum ada riwayat absensi')),
+          Center(
+            child: Text(
+              'Belum ada riwayat absensi',
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
+          ),
         ],
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
       itemCount: history.length,
-      itemBuilder: (context, index) {
-        final item = history[index];
-        final color = _statusColor(item['status']);
-
-        // Mapel hanya tidak ditampilkan untuk guru
-        final isGuru = item['subject'] == null || item['subject'] == '-';
-        final subject = !isGuru ? item['subject'] ?? '-' : null;
-
-        return _HistoryCard(
-          date: _formatDate(item['tanggal']?.toString()),
-          subject: subject,
-          timeIn: item['jam']?.toString() ?? '-',
-          timeOut: item['time_out']?.toString() ?? '-',
-          status: item['status'] ?? '-',
-          color: color,
-          icon: _statusIcon(item['status']),
-          photoUrl: item['foto'],
-          latitude: (item['latitude'] != null)
-              ? double.tryParse(item['latitude'].toString())
-              : null,
-          longitude: (item['longitude'] != null)
-              ? double.tryParse(item['longitude'].toString())
-              : null,
-          isGuru: isGuru,
-        );
-      },
+      itemBuilder: (context, index) => _HistoryCard(data: history[index]),
     );
   }
 }
 
 class _HistoryCard extends StatelessWidget {
-  final String date;
-  final String? subject; // bisa null kalau guru
-  final String timeIn;
-  final String timeOut;
-  final String status;
-  final Color color;
-  final IconData icon;
-  final String? photoUrl;
-  final double? latitude;
-  final double? longitude;
-  final bool isGuru;
+  final Map<String, dynamic> data;
+  const _HistoryCard({required this.data});
 
-  const _HistoryCard({
-    required this.date,
-    this.subject,
-    required this.timeIn,
-    required this.timeOut,
-    required this.status,
-    required this.color,
-    required this.icon,
-    this.photoUrl,
-    this.latitude,
-    this.longitude,
-    required this.isGuru,
-  });
+  String _formatDate(String? date) {
+    if (date == null || date.isEmpty) return '-';
+    try {
+      return DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
+          .format(DateTime.parse(date));
+    } catch (_) {
+      return '-';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final status = (data['status'] ?? 'HADIR').toString().toUpperCase();
+    final dateStr = _formatDate(data['tanggal']?.toString());
+    final checkIn = data['jam']?.toString() ?? '-- : --';
+    final checkOut = (data['time_out']?.toString() == null || data['time_out']?.toString() == '-') 
+        ? '-- : --' 
+        : data['time_out'].toString();
+    final subject = data['subject'] ?? 'Absensi Harian';
+    
+    final latitude = (data['latitude'] != null)
+        ? double.tryParse(data['latitude'].toString())
+        : null;
+    final longitude = (data['longitude'] != null)
+        ? double.tryParse(data['longitude'].toString())
+        : null;
+    final location = (latitude != null && longitude != null)
+        ? 'Lokasi: ${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}'
+        : 'Lokasi tidak diketahui';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE0E7FF)),
-        boxShadow: const [
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          )
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  date,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          children: [
+            // TOP PART: DATE & STATUS
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppConfig.primaryColor.withOpacity(0.08), AppConfig.primaryColor.withOpacity(0.02)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                      color: color, fontWeight: FontWeight.w600, fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-          if (!isGuru && subject != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Mapel: $subject',
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF334155)),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (photoUrl != null) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    photoUrl!,
-                    height: 60,
-                    width: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.broken_image, size: 60),
-                  ),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _timeBox('Masuk', timeIn, Icons.login),
-                        if (timeOut.isNotEmpty && timeOut != '-') ...[
-                          const SizedBox(width: 16),
-                          _timeBox('Pulang', timeOut, Icons.logout),
-                        ],
-                      ],
-                    ),
-                    if (latitude != null && longitude != null) ...[
-                      const SizedBox(height: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded, size: 14, color: AppConfig.primaryColor),
+                      const SizedBox(width: 8),
                       Text(
-                        'Lokasi: ${latitude!.toStringAsFixed(5)}, ${longitude!.toStringAsFixed(5)}',
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey),
+                        dateStr,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          color: AppConfig.primaryColor,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ],
-                  ],
-                ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppConfig.primaryColor,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppConfig.primaryColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: Text(
+                      status,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    subject,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // CLOCK IN / OUT SECTION
+                  Row(
+                    children: [
+                      _timeInfo('JAM MASUK', checkIn, Icons.login_rounded, Colors.green),
+                      const SizedBox(width: 12),
+                      _timeInfo('JAM PULANG', checkOut, Icons.logout_rounded, Colors.orange),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          location,
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _timeBox(String label, String time, IconData icon) {
+  Widget _timeInfo(String label, String time, IconData icon, Color color) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFEFF6FF),
-          borderRadius: BorderRadius.circular(14),
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFF1F5F9)),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 18, color: const Color(0xFF2563EB)),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF64748B))),
-                Text(time,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E3A8A))),
+                Icon(icon, size: 12, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              time,
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+                color: Color(0xFF1E293B),
+              ),
             ),
           ],
         ),

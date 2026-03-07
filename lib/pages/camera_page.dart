@@ -274,6 +274,23 @@ class FaceLandmarkPainter extends CustomPainter {
 
     canvas.drawPath(maskPath, maskPaint);
 
+    // ===== SCANNING LINE (ANIMATED) =====
+    final scanPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.cyanAccent.withOpacity(0.0),
+          Colors.cyanAccent.withOpacity(0.5),
+          Colors.cyanAccent.withOpacity(0.0),
+        ],
+      ).createShader(Rect.fromLTWH(0, (t % 1.0) * size.height, size.width, 100));
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, (t % 1.0) * size.height - 50, size.width, 100),
+      scanPaint,
+    );
+
     // ===== LANDMARK MINIMAL =====
     final dotPaint = Paint()
       ..color = active

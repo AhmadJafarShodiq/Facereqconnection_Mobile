@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:facereq_mobile/core/api_service.dart';
+import 'package:facereq_mobile/core/app_config.dart';
 
 class ConfirmFacePage extends StatefulWidget {
   final Uint8List photoBytes;
@@ -105,89 +106,101 @@ class _ConfirmFacePageState extends State<ConfirmFacePage> {
  
   @override
   Widget build(BuildContext context) {
+    final primaryColor = AppConfig.primaryColor;
     final timeText = DateFormat('HH:mm:ss • dd-MM-yyyy').format(DateTime.now());
 
     final buttonText = widget.role == 'guru'
         ? (widget.type == 'check_out' ? 'ABSEN PULANG' : 'ABSEN MASUK')
-        : 'ABSEN MAPEL';
+        : 'ABSEN SEKARANG';
 
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF2F4F8),
+        backgroundColor: const Color(0xFFF1F5F9),
         appBar: AppBar(
-          backgroundColor: Colors.blue,
+          backgroundColor: Colors.white,
           elevation: 0,
           leading: const SizedBox.shrink(),
-          title: const Text('Konfirmasi'),
+          title: Text('KONFIRMASI', style: TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
+          centerTitle: true,
         ),
         body: Center(
-          child: Card(
-            margin: const EdgeInsets.all(16),
-            elevation: 6,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+          child: Container(
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Konfirmasi Foto',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Stack(
-                      children: [
-                        Image.memory(widget.photoBytes),
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            color: Colors.black54,
-                            child: Text(
-                              '${widget.name}\n${(widget.similarity * 100).toStringAsFixed(0)}%',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'VALIDASI WAJAH BERHASIL',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1, color: primaryColor),
+                ),
+                const SizedBox(height: 20),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    children: [
+                      Image.memory(widget.photoBytes, fit: BoxFit.cover),
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                        ),
-                        Positioned(
-                          bottom: 8,
-                          left: 8,
                           child: Text(
-                            timeText,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                            ),
+                            '${widget.name} • ${(widget.similarity * 100).toStringAsFixed(0)}%',
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _submitAttendance,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF5D94C),
-                        foregroundColor: Colors.black,
                       ),
-                      child: _loading
-                          ? const CircularProgressIndicator()
-                          : Text(buttonText),
-                    ),
+                      Positioned(
+                        bottom: 12,
+                        left: 12,
+                        child: Text(
+                          timeText,
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _submitAttendance,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: _loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(buttonText, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('ULANGI SCAN', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ],
             ),
           ),
         ),

@@ -3,6 +3,7 @@ import 'package:location/location.dart';
 import 'dart:math';
 import 'camera_page.dart';
 import '../core/api_service.dart';
+import '../core/app_config.dart';
 
 class LocationPage extends StatefulWidget {
   final String role;
@@ -32,9 +33,7 @@ class _LocationPageState extends State<LocationPage>
 
   late AnimationController _radarController;
 
-  static const Color primaryBlue = Color(0xFF1565C0);
-  static const Color softBlue = Color(0xFF42A5F5);
-  static const Color darkText = Color(0xFF1F2937);
+  static const Color darkText = Color(0xFF1E293B);
 
   @override
   void initState() {
@@ -135,133 +134,126 @@ if (ok == true && mounted) {
 
   @override
   Widget build(BuildContext context) {
-    final isInside =
-        distanceMeter != null && distanceMeter! <= schoolRadius;
+    final isInside = distanceMeter != null && distanceMeter! <= schoolRadius;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF4F6FA), Color(0xFFE9ECF3)],
-          ),
+      backgroundColor: const Color(0xFFF1F5F9),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: AppConfig.primaryColor, size: 18),
+          onPressed: () => Navigator.pop(context),
         ),
-        child: SafeArea(
-          child: Center(
-            child: loading
-                ? const CircularProgressIndicator()
-                : Card(
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
+        title: Text(
+          'Validasi Lokasi',
+          style: TextStyle(color: AppConfig.primaryColor, fontWeight: FontWeight.w900, fontSize: 18),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // RADAR BOX
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppConfig.primaryColor.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Validasi Lokasi',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: darkText,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-
-                          /// RADAR
-                          SizedBox(
-                            width: 230,
-                            height: 230,
-                            child: AnimatedBuilder(
-                              animation: _radarController,
-                              builder: (_, __) {
-                                return Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    _radarCircle(),
-                                    _radarCircle(scale: 0.7),
-                                    _radarCircle(scale: 0.4),
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: primaryBlue,
-                                      ),
-                                      child: const Icon(
-                                        Icons.my_location,
-                                        color: Colors.white,
-                                      ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: AnimatedBuilder(
+                        animation: _radarController,
+                        builder: (_, __) {
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              _radarCircle(),
+                              _radarCircle(scale: 0.6),
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppConfig.primaryColor,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppConfig.primaryColor.withOpacity(0.4),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 5),
                                     ),
                                   ],
-                                );
-                              },
-                            ),
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          Text(
-                            '${distanceMeter?.toStringAsFixed(1) ?? '-'} meter',
-                            style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: darkText,
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: primaryBlue.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              isInside
-                                  ? 'Lokasi valid, siap absensi'
-                                  : 'Di luar area sekolah',
-                              style: const TextStyle(
-                                color: primaryBlue,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          if (readyToCamera)
-                            ElevatedButton(
-                              onPressed: _goToCamera,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryBlue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 36, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
                                 ),
+                                child: const Icon(Icons.my_location, color: Colors.white, size: 24),
                               ),
-                              child: const Text('Lanjut ke Kamera'),
-                            )
-                          else
-                            ElevatedButton(
-                              onPressed: _checkLocation,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryBlue,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Coba Lagi'),
-                            ),
-                        ],
+                            ],
+                          );
+                        },
                       ),
                     ),
+                    const SizedBox(height: 32),
+                    if (loading)
+                      const Text('Mendeteksi lokasi...', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600))
+                    else ...[
+                      Text(
+                        '${distanceMeter?.toStringAsFixed(1) ?? '-'} meter',
+                        style: TextStyle(color: AppConfig.primaryColor, fontWeight: FontWeight.w900, fontSize: 18),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isInside ? 'Kamu ada di area sekolah' : 'Kamu terlalu jauh dari sekolah',
+                        style: TextStyle(
+                          color: isInside ? Colors.green.shade700 : Colors.red.shade600,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 48),
+
+              if (!loading)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: isInside ? _goToCamera : _checkLocation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isInside ? AppConfig.primaryColor : Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      isInside ? 'LANJUT KE KAMERA' : 'COBA LAGI',
+                      style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+                    ),
                   ),
+                ),
+              
+              const SizedBox(height: 20),
+              const Text(
+                'Pastikan GPS aktif dan akurat sebelum absen',
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+              ),
+            ],
           ),
         ),
       ),
@@ -279,7 +271,7 @@ if (ok == true && mounted) {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: softBlue.withOpacity(0.45),
+              color: AppConfig.primaryColor.withOpacity(0.45),
               width: 2,
             ),
           ),

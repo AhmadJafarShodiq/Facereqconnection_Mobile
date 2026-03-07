@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:facereq_mobile/core/api_service.dart';
+import 'package:facereq_mobile/core/app_config.dart';
 
 class RegisterFacePage extends StatefulWidget {
   const RegisterFacePage({super.key});
@@ -202,12 +203,19 @@ class _RegisterFacePageState extends State<RegisterFacePage> {
           if (_livenessOk)
             Positioned(
               bottom: 40,
-              left: 0,
-              right: 0,
-              child: Center(
+              left: 24,
+              right: 24,
+              child: SizedBox(
+                height: 56,
                 child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConfig.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
                   onPressed: _capturing ? null : _register,
-                  child: const Text("DAFTARKAN WAJAH"),
+                  child: const Text("SIMPAN DATA WAJAH", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
                 ),
               ),
             ),

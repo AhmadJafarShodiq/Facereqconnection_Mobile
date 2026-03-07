@@ -2,9 +2,27 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'auth_storage.dart';
+import 'app_config.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://face.siface.my.id/api';
+  static const String baseUrl = 'http://192.168.0.105:8000/api';
+
+  static Future<void> fetchSchoolSettings() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/school'));
+      final data = jsonDecode(res.body);
+      if (data['status'] == true) {
+        final school = data['data'];
+        await AppConfig.update(
+          name: school['nama_sekolah'] ?? 'SMK Negeri 1 Tamanan',
+          color: school['primary_color'] ?? '#5E5CE6',
+          logo: school['logo_url'] ?? '',
+        );
+      }
+    } catch (e) {
+      // Keep defaults
+    }
+  }
 
   static Future<Map<String, String>> _headers() async {
     final token = await AuthStorage.getToken();
@@ -63,6 +81,7 @@ class ApiService {
     }
 
     final data = jsonDecode(res.body);
+    // Endpoint /me di backend mengembalikan object User langsung (sudah termasuk 'profile')
     await AuthStorage.saveUser(data);
     return Map<String, dynamic>.from(data);
   }
@@ -330,11 +349,14 @@ class ApiService {
     return List<Map<String, dynamic>>.from(body['data']);
   }
 
-  static Future<Map<String, dynamic>> openSession(int scheduleId) async {
+  static Future<Map<String, dynamic>> openSession(int scheduleId, {int? duration}) async {
     final res = await http.post(
       Uri.parse('$baseUrl/guru/attendance/open'),
       headers: await _headers(),
-      body: jsonEncode({'schedule_id': scheduleId}),
+      body: jsonEncode({
+        'schedule_id': scheduleId,
+        'duration': duration,
+      }),
     );
 
     final data = jsonDecode(res.body);
@@ -383,5 +405,74 @@ class ApiService {
     }
 
     return Map<String, dynamic>.from(jsonDecode(res.body));
+  }
+
+  // UPDATE PROFIL
+  static Future<void> updateProfile({
+    required String name,
+    required String nip,
+    String? jabatan,
+    String? instansi,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/profile/update'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'nama_lengkap': name,
+        'nip_nis': nip,
+        'jabatan_kelas': jabatan,
+        'instansi': instansi,
+      }),
+    );
+
+    final data = jsonDecode(res.body);
+    if (res.statusCode != 200 || data['status'] != true) {
+      throw Exception(data['message'] ?? 'Gagal memperbarui profil');
+    }
+  }
+
+  // UBAH PASSWORD
+  static Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/profile/password'),
+      headers: await _headers(),
+      body: jsonEncode({
+        'old_password': oldPassword,
+        'new_password': newPassword,
+        'new_password_confirmation': confirmPassword,
+      }),
+    );
+
+    final data = jsonDecode(res.body);
+    if (res.statusCode != 200 || data['status'] != true) {
+      throw Exception(data['message'] ?? 'Gagal mengubah password');
+    }
+  }
+
+  // UPDATE FOTO
+  static Future<String> updatePhoto(Uint8List bytes) async {
+    final token = await AuthStorage.getToken();
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/profile/photo'));
+    
+    request.headers['Authorization'] = 'Bearer $token';
+    request.headers['Accept'] = 'application/json';
+
+    request.files.add(
+      http.MultipartFile.fromBytes('foto', bytes, filename: 'profile.jpg'),
+    );
+
+    final response = await request.send();
+    final resBody = await response.stream.bytesToString();
+    final data = jsonDecode(resBody);
+
+    if (response.statusCode != 200 || data['status'] != true) {
+      throw Exception(data['message'] ?? 'Gagal mengupload foto');
+    }
+
+    return data['foto'];
   }
 }

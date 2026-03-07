@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/api_service.dart';
+import '../core/app_config.dart';
 
 /// ===============================
 /// PAGE
@@ -30,10 +31,12 @@ class _SubjectDetailPageState extends State<SubjectDetailPage>
 
   bool loading = true;
 
-  int get subjectId =>
-      widget.subject['id'] ?? widget.subject['subject_id'] ?? 0;
+  int get subjectId {
+    final raw = widget.subject['id'] ?? widget.subject['subject_id'] ?? 0;
+    return (raw as num).toInt();
+  }
 
-  int get classId => widget.classId;
+  int get classId => (widget.classId as num).toInt();
 
   @override
   void initState() {
@@ -84,28 +87,37 @@ class _SubjectDetailPageState extends State<SubjectDetailPage>
   /// ===============================
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF5E5CE6);
+    final primaryColor = AppConfig.primaryColor;
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: primaryColor, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: primaryColor, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          (widget.subject['name'] ?? 'DETAIL MAPEL').toUpperCase(),
-          style: const TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 16),
+        title: Column(
+          children: [
+            Text(
+              (widget.subject['name'] ?? 'DETAIL MAPEL').toUpperCase(),
+              style: TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
+            ),
+            Text(
+              'Detail Kehadiran Siswa',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         centerTitle: true,
         bottom: TabBar(
           controller: _tab,
           labelColor: primaryColor,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: Colors.grey.shade400,
           indicatorColor: primaryColor,
-          indicatorWeight: 3,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+          indicatorWeight: 4,
+          indicatorSize: TabBarIndicatorSize.label,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
           tabs: const [
             Tab(text: 'BELUM ABSEN'),
             Tab(text: 'SUDAH ABSEN'),
@@ -113,7 +125,7 @@ class _SubjectDetailPageState extends State<SubjectDetailPage>
         ),
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator(color: primaryColor))
+          ? Center(child: CircularProgressIndicator(color: primaryColor))
           : RefreshIndicator(
               onRefresh: _load,
               color: primaryColor,
@@ -139,20 +151,24 @@ class _SubjectDetailPageState extends State<SubjectDetailPage>
   /// HEADER STATISTIK
   /// ===============================
   Widget _statsHeader() {
-    const primaryColor = Color(0xFF5E5CE6);
+    final primaryColor = AppConfig.primaryColor;
     final total = present.length + missing.length;
 
     return Container(
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.grey.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
           ),
         ],
       ),
@@ -162,19 +178,26 @@ class _SubjectDetailPageState extends State<SubjectDetailPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'STATISTIK KEHADIRAN',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.grey, letterSpacing: 1),
+              Text(
+                'AKTIVITAS KELAS',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: primaryColor, letterSpacing: 1.5),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.8)]),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryColor.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
                 ),
                 child: Text(
-                  '${percent.toStringAsFixed(0)}%',
-                  style: const TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 12),
+                  '${percent.toStringAsFixed(1)}%',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11),
                 ),
               ),
             ],
@@ -183,20 +206,39 @@ class _SubjectDetailPageState extends State<SubjectDetailPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _miniStat('HADIR', present.length, Colors.green),
-              _miniStat('BELUM', missing.length, Colors.red),
+              _miniStat('HADIR', present.length, Colors.green.shade600),
+              _miniStat('BELUM', missing.length, Colors.red.shade600),
               _miniStat('TOTAL', total, primaryColor),
             ],
           ),
           const SizedBox(height: 24),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: percent / 100,
-              minHeight: 10,
-              backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: const AlwaysStoppedAnimation<Color>(primaryColor),
-            ),
+          Stack(
+            children: [
+              Container(
+                height: 12,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                height: 12,
+                width: (MediaQuery.of(context).size.width - 96) * (percent / 100),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.8)]),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryColor.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -230,7 +272,7 @@ class _SubjectDetailPageState extends State<SubjectDetailPage>
   /// LIST SISWA
   /// ===============================
   Widget _list(List<Map<String, dynamic>> data, String empty) {
-    const primaryColor = Color(0xFF5E5CE6);
+    final primaryColor = AppConfig.primaryColor;
     if (data.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -265,7 +307,7 @@ class _SubjectDetailPageState extends State<SubjectDetailPage>
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             leading: CircleAvatar(
               backgroundColor: primaryColor.withOpacity(0.1),
-              child: const Icon(Icons.person_outline, color: primaryColor, size: 20),
+              child: Icon(Icons.person_outline, color: primaryColor, size: 20),
             ),
             title: Text(
               s['nama'] ?? s['nama_lengkap'] ?? '-',
