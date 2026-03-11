@@ -14,7 +14,7 @@
     
 
     <application
-        android:label="facereq_mobile"
+        android:label="Absensi SMKN 1 Tamanan"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

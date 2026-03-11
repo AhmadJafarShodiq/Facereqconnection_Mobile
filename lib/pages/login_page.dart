@@ -137,6 +137,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     final primaryColor = AppConfig.primaryColor;
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -159,6 +160,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             _floatingCircle(top: 150, left: -80, size: 150, delay: 2),
 
             SafeArea(
+              bottom: false,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Column(
@@ -187,53 +189,56 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                   child: Container(
                                     padding: const EdgeInsets.all(20),
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(30),
+                                      color: Colors.white.withOpacity(0.9),
+                                      borderRadius: BorderRadius.circular(35),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 30,
-                                          offset: const Offset(0, 15),
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 10),
                                         ),
                                       ],
                                     ),
-                                    child: AppConfig.useNetworkLogo
-                                        ? Image.network(
-                                            AppConfig.logoUrl,
-                                            width: 70,
-                                            height: 70,
-                                            errorBuilder: (context, error, stackTrace) => Image.asset(
-                                              'assets/images/logosmk.png',
-                                              width: 70,
-                                              height: 70,
-                                            ),
-                                          )
-                                        : Image.asset(
-                                            'assets/images/logosmk.png',
-                                            width: 70,
-                                            height: 70,
-                                          ),
+                                    child: Image.asset(
+                                      'assets/images/logosmk.png',
+                                      width: 70,
+                                      height: 70,
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 24),
-                            Text(
-                              AppConfig.schoolName.replaceFirst('SMK Negeri 1 ', 'SMK Negeri 1\n').split('\n').first.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 4,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'SISTEM ABSENSI DIGITAL',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 2,
+                                ),
                               ),
                             ),
-                            Text(
-                              AppConfig.schoolName.replaceFirst('SMK Negeri 1 ', '').toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1,
+                            const SizedBox(height: 12),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 40),
+                              child: Text(
+                                AppConfig.schoolName.toUpperCase(),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                  height: 1.2,
+                                ),
                               ),
                             ),
                           ],
@@ -252,29 +257,33 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         builder: (context, offset, child) {
                           return Transform.translate(
                             offset: offset * MediaQuery.of(context).size.height,
-                            child: child,
+                            child: Container(
+                              constraints: BoxConstraints(
+                              minHeight: MediaQuery.of(context).size.height * 0.7,
+                            ),
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(32, 48, 32, 100),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(50),
+                                  topRight: Radius.circular(50),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 30,
+                                    offset: Offset(0, -5),
+                                  ),
+                                ],
+                              ),
+                              child: child,
+                            ),
                           );
                         },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(32, 48, 32, 60),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(50),
-                              topRight: Radius.circular(50),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 40,
-                                offset: Offset(0, -10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                               const Text(
                                 'Sign In',
                                 style: TextStyle(
@@ -371,9 +380,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ),
             ),
           ],

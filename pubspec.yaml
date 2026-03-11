@@ -40,6 +40,7 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -54,3 +55,9 @@ flutter:
     # ===== ANDROID ML ASSETS (WAJIB) =====
     - android/app/src/main/assets/face_landmarker.task
     - android/app/src/main/assets/mobilefacenet.tflite
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logosmk.png"
+  min_sdk_android: 21

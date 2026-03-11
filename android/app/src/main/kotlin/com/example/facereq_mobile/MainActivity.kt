@@ -37,10 +37,17 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        // STEP 1: Persiapan Awal
+        // Load model MobileFaceNet (.tflite) dari assets.
+        // Interpreter ini adalah "mesin" yang akan menjalankan model tersebut.
         interpreter = Interpreter(loadModel("mobilefacenet.tflite"))
+        
+        // Load model MediaPipe untuk deteksi titik wajah (landmarks).
+        // Digunakan untuk ngecek apakah mata kedip atau kepala tengok.
         initLiveLandmarker()
         initImageLandmarker()
 
+        // Menghubungkan Android Native dengan Flutter
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -57,13 +64,19 @@ class MainActivity : FlutterFragmentActivity() {
                     }
 
                     "processFrame" -> {
+                        // STEP 2: Input Gambar (Streaming)
+                        // Flutter mengirimkan gambar mentah (ByteArray) dari kamera.
                         val bytes = call.argument<ByteArray>("image")
                             ?: return@setMethodCallHandler result.error("NO_IMAGE", null, null)
 
+                        // STEP 3: Pra-Proses
+                        // Gambar diputar agar posisinya benar (tegak).
                         val bitmap = fixRotation(
                             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                         )
 
+                        // STEP 4: Cek Keaslian (Liveness)
+                        // Memeriksa apakah ini manusia beneran (cekedip & tengok).
                         processLiveness(bitmap)
 
                         val landmarks = lastLandmarks?.map {
@@ -98,9 +111,13 @@ class MainActivity : FlutterFragmentActivity() {
                             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                         )
 
+                        // STEP 5: Pengambilan Potongan Wajah (Cropping)
+                        // Sistem mencari kotak wajah dan membuang background-nya.
                         val face = cropFace(bitmap)
                             ?: return@setMethodCallHandler result.error("NO_FACE", null, null)
 
+                        // STEP 6: Proses Inti MobileFaceNet
+                        // Mengirim potongan wajah ke mesin untuk diubah jadi angka unik (Embedding).
                         result.success(mapOf("embedding" to getEmbedding(face)))
                     }
 
@@ -160,25 +177,29 @@ class MainActivity : FlutterFragmentActivity() {
 
     // ================= LIVENESS =================
 
+    // STEP 4.1: Logika Sensor Kedip
     private fun checkBlink(l: List<NormalizedLandmark>): Boolean {
+        // Menghitung jarak kelopak mata atas dan bawah
         val left = abs(l[159].y() - l[145].y())
         val right = abs(l[386].y() - l[374].y())
         val closed = left < 0.03f && right < 0.03f
 
         return when (blinkState) {
-            0 -> { if (!closed) blinkState = 1; false }
-            1 -> { if (closed) blinkState = 2; false }
-            2 -> !closed
+            0 -> { if (!closed) blinkState = 1; false } // Harus mata terbuka dulu
+            1 -> { if (closed) blinkState = 2; false }  // Baru kedip (tutup)
+            2 -> !closed                               // Harus buka lagi
             else -> true
         }
     }
 
+    // STEP 4.2: Logika Sensor Tengok
     private fun checkHeadMove(l: List<NormalizedLandmark>): Boolean {
         val yaw = abs(l[234].x() - l[454].x())
         if (lastYaw == null) {
             lastYaw = yaw
             return false
         }
+        // Jika posisi wajah bergeser lebih dari 0.03, dianggap sudah menengok
         val moved = abs(yaw - lastYaw!!) > 0.03f
         lastYaw = yaw
         return moved
@@ -240,12 +261,17 @@ class MainActivity : FlutterFragmentActivity() {
                 .apply { rewind() }
         }
 
+    // STEP 6.1: Menghitung Data Identitas (Embedding)
     private fun getEmbedding(bitmap: Bitmap): List<Double> {
+        // Alokasi memori untuk input (Kebutuhan MobileFaceNet: 112x112 pixel RGB)
         val input = ByteBuffer.allocateDirect(1 * 112 * 112 * 3 * 4)
             .order(ByteOrder.nativeOrder())
 
+        // Resize: Gambar wajah disesuaikan jadi ukuran 112x112
         val resized = Bitmap.createScaledBitmap(bitmap, 112, 112, true)
 
+        // Normalisasi: Mengubah pixel warna (0-255) jadi nilai pecahan (-1.0 sampai 1.0)
+        // Ini wajib agar mesin MobileFaceNet bisa menghitung dengan benar.
         for (y in 0 until 112)
             for (x in 0 until 112) {
                 val p = resized.getPixel(x, y)
@@ -254,8 +280,14 @@ class MainActivity : FlutterFragmentActivity() {
                 input.putFloat(((p and 0xFF) - 128f) / 128f)
             }
 
+        // Variabel penampung hasil: MobileFaceNet menghasilkan 192 angka identitas
         val output = Array(1) { FloatArray(192) }
+        
+        // JALANKAN MESIN: Inilah saatnya model MobileFaceNet bekerja!
         interpreter.run(input, output)
+        
+        // STEP 7: Selesai
+        // Hasil 192 angka dikirim balik ke Flutter.
         return output[0].map { it.toDouble() }
     }
 }

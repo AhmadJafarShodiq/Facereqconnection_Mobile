@@ -25,7 +25,7 @@ class _SplashPageState extends State<SplashPage>
     super.initState();
 
     _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 3));
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 2500));
 
     // Logo scale dengan efek masuk dan sedikit bounce
     _logoScale = TweenSequence([
@@ -39,14 +39,14 @@ class _SplashPageState extends State<SplashPage>
     _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
           parent: _controller,
-          curve: const Interval(0.5, 1.0, curve: Curves.easeIn)),
+          curve: const Interval(0.2, 0.6, curve: Curves.easeIn)),
     );
 
     // Spinner fade in setelah teks muncul
     _spinnerFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
           parent: _controller,
-          curve: const Interval(0.7, 1.0, curve: Curves.easeIn)),
+          curve: const Interval(0.5, 1.0, curve: Curves.easeIn)),
     );
 
     _controller.forward();
@@ -60,7 +60,12 @@ class _SplashPageState extends State<SplashPage>
     // FETCH LATEST CONFIG FROM NETWORK
     await ApiService.fetchSchoolSettings();
 
-    await Future.delayed(const Duration(seconds: 2));
+    // Pastikan animasi logo sudah sempat tampil (tunggu minimal 2 detik)
+    // dan tunggu sampai controller animasi mendekati selesai
+    await Future.wait([
+      Future.delayed(const Duration(milliseconds: 2000)),
+      _controller.forward().then((value) => null), // Tunggu sampai animasi selesai
+    ]);
 
     final token = await AuthStorage.getToken();
     if (!mounted) return;
@@ -155,7 +160,7 @@ class _SplashPageState extends State<SplashPage>
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(32),
+                              borderRadius: BorderRadius.circular(35),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.15),
@@ -164,22 +169,12 @@ class _SplashPageState extends State<SplashPage>
                                 ),
                               ],
                             ),
-                            child: AppConfig.useNetworkLogo
-                                ? Image.network(
-                                    AppConfig.logoUrl,
-                                    width: 90,
-                                    height: 90,
-                                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                                    child: Image.asset(
                                       'assets/images/logosmk.png',
                                       width: 90,
                                       height: 90,
+                                      fit: BoxFit.contain,
                                     ),
-                                  )
-                                : Image.asset(
-                                    'assets/images/logosmk.png',
-                                    width: 90,
-                                    height: 90,
-                                  ),
                           ),
                         ),
                       ],

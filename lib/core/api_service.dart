@@ -5,7 +5,7 @@ import 'auth_storage.dart';
 import 'app_config.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.105:8000/api';
+  static const String baseUrl = 'https://face.siface.my.id/api';
 
   static Future<void> fetchSchoolSettings() async {
     try {
