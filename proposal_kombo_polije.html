@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Proposal Website KOMBO POLIJE – Tim Nautilus</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 12pt;
+      color: #000;
+      background: #fff;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 25mm 25mm 25mm 30mm;
+      background: #fff;
+    }
+
+    @media print {
+      .page { margin: 0; padding: 25mm 25mm 25mm 30mm; }
+      .no-print { display: none; }
+      @page { size: A4; margin: 0; }
+    }
+
+    /* --- COVER --- */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 247mm;
+      text-align: center;
+      gap: 10px;
+    }
+    .cover img.logo { width: 80px; margin-bottom: 10px; }
+    .cover h1 { font-size: 16pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+    .cover h2 { font-size: 14pt; font-weight: bold; }
+    .cover p { font-size: 12pt; }
+    .cover .divider { border-top: 3px double #000; width: 100%; margin: 12px 0; }
+    .cover .box {
+      border: 2px solid #000;
+      padding: 14px 24px;
+      margin-top: 20px;
+      text-align: left;
+      width: 100%;
+    }
+    .cover .box table { width: 100%; }
+    .cover .box td { padding: 2px 4px; font-size: 11pt; }
+
+    /* --- HEADINGS --- */
+    h1.section { font-size: 14pt; font-weight: bold; text-transform: uppercase; margin: 16px 0 8px; }
+    h2.section { font-size: 13pt; font-weight: bold; margin: 14px 0 6px; }
+    h3.section { font-size: 12pt; font-weight: bold; margin: 12px 0 4px; }
+
+    /* --- TEXT --- */
+    p { text-indent: 0; margin-bottom: 6px; line-height: 1.6; text-align: justify; }
+    p.indent { text-indent: 30px; }
+    ul, ol { margin-left: 30px; margin-bottom: 8px; }
+    li { line-height: 1.7; }
+
+    /* --- PAGE BREAK --- */
+    .page-break { page-break-after: always; break-after: page; }
+
+    /* --- TABLES --- */
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px;
+      font-size: 11pt;
+    }
+    table.data th, table.data td {
+      border: 1px solid #000;
+      padding: 5px 8px;
+    }
+    table.data th {
+      background: #d9d9d9;
+      text-align: center;
+      font-weight: bold;
+    }
+    table.data td.center { text-align: center; }
+    table.data td.right  { text-align: right; }
+    table.data tr.subtotal td { background: #f2f2f2; font-weight: bold; }
+    table.data tr.total-row td { background: #d9d9d9; font-weight: bold; }
+    table.data tr.phase-header td {
+      background: #bdd7ee;
+      font-weight: bold;
+    }
+
+    /* --- RAB SECTION LABELS --- */
+    .rab-label { font-weight: bold; margin: 14px 0 4px; font-size: 12pt; }
+
+    /* --- SIGNATURE --- */
+    .sign-block { margin-top: 30px; }
+    .sign-row { display: flex; justify-content: space-between; margin-top: 10px; }
+    .sign-col { text-align: center; width: 45%; }
+    .sign-line { border-top: 1px solid #000; margin-top: 60px; width: 80%; margin-left: auto; margin-right: auto; }
+
+    /* --- PRINT BUTTON --- */
+    .print-btn {
+      position: fixed; top: 16px; right: 24px;
+      background: #1a73e8; color: #fff;
+      border: none; padding: 10px 22px;
+      border-radius: 6px; cursor: pointer;
+      font-size: 13px; font-family: Arial, sans-serif;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+      z-index: 999;
+    }
+    .print-btn:hover { background: #1558b0; }
+
+    /* timeline */
+    table.timeline { font-size: 10pt; }
+    table.timeline th, table.timeline td { padding: 4px 6px; }
+  </style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+
+<!-- ==================== COVER ==================== -->
+<div class="page">
+  <div class="cover">
+    <p style="font-size:13pt; font-weight:bold;">PROPOSAL PENAWARAN KERJA SAMA</p>
+    <div class="divider"></div>
+    <h1 class="section" style="margin:0;">Pengembangan Website</h1>
+    <h2 class="section" style="margin:4px 0 0;">Organisasi KOMBO POLIJE</h2>
+    <p style="font-size:11pt; margin-top:4px;">(Komunitas Bondowoso – Politeknik Negeri Jember)</p>
+
+    <div style="margin-top:30px; font-size:12pt; font-weight:bold;">Disusun Oleh:</div>
+    <div class="box">
+      <table>
+        <tr><td style="width:130px;">Nama Tim</td><td>: <strong>Nautilus</strong></td></tr>
+        <tr><td>Alamat</td><td>: Jl. KH. Wahid Hasyim No 41, Bondowoso – Jawa Timur</td></tr>
+        <tr><td>No. Telepon</td><td>: 085 335 809 393</td></tr>
+        <tr><td>Email</td><td>: hanyaverif@gmail.com</td></tr>
+        <tr><td>Program Studi</td><td>: Teknik Informatika</td></tr>
+        <tr><td>Institusi</td><td>: Politeknik Negeri Jember – Kampus Bondowoso</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-top:40px; font-size:12pt;">
+      <strong>Bondowoso, Maret 2026</strong>
+    </div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== BAB 1 ==================== -->
+<div class="page">
+  <h1 class="section">BAB I – PENDAHULUAN</h1>
+
+  <h2 class="section">1.1 Latar Belakang</h2>
+  <p class="indent">
+    Seiring dengan perkembangan teknologi informasi yang semakin pesat, penggunaan media digital
+    telah menjadi bagian penting dalam berbagai aktivitas, termasuk dalam kegiatan organisasi.
+    Media digital seperti website dapat menjadi sarana yang efektif untuk menyampaikan informasi
+    secara cepat, luas, dan mudah diakses oleh masyarakat melalui jaringan internet. Website
+    merupakan kumpulan halaman yang memuat berbagai informasi yang dapat diakses kapan saja
+    dan di mana saja menggunakan perangkat seperti komputer maupun telepon seluler. Dengan
+    adanya website, suatu organisasi dapat memperkenalkan profil organisasi, menyampaikan
+    kegiatan yang dilakukan, serta membangun komunikasi yang lebih baik dengan masyarakat
+    maupun pihak yang berkepentingan.
+  </p>
+  <p class="indent">
+    KOMBO POLIJE sebagai organisasi mahasiswa di lingkungan Politeknik Negeri Jember memiliki
+    berbagai kegiatan dan program yang bertujuan untuk mengembangkan potensi mahasiswa serta
+    memberikan kontribusi positif bagi lingkungan kampus. Namun, penyampaian informasi mengenai
+    kegiatan dan profil organisasi masih terbatas sehingga belum dapat menjangkau audiens secara
+    lebih luas. Oleh karena itu, kami menawarkan pembuatan <strong>Website Organisasi KOMBO
+    POLIJE</strong> sebagai media informasi dan publikasi digital. Website ini diharapkan dapat
+    menjadi wadah untuk memperkenalkan organisasi, menampilkan kegiatan yang telah dilaksanakan,
+    serta mempermudah penyebaran informasi kepada anggota, mahasiswa, maupun masyarakat umum
+    secara efektif dan terstruktur.
+  </p>
+
+  <h2 class="section">1.2 Maksud dan Tujuan</h2>
+  <p class="indent">
+    Besar harapan kami agar tercipta kerja sama yang dapat menguntungkan kedua belah pihak, yang
+    mana dengan seizin Allah SWT kami siap membantu dalam pembuatan website KOMBO POLIJE untuk
+    kepentingan peningkatan kualitas dan kuantitas penyampaian informasi. Maksud dan tujuan dari
+    pembuatan Website Company Profile Komunitas Bondowoso ini adalah sebagai berikut:
+  </p>
+  <ol>
+    <li>
+      Membangun sistem informasi berbasis website yang mengintegrasikan mahasiswa Polije,
+      pengurus organisasi, dan sponsor di Bondowoso untuk mempermudah akses informasi komunitas
+      secara transparan. Sistem ini dilengkapi fitur koordinasi respons cepat yang memungkinkan
+      pengalihan komunikasi antar-pengurus secara instan dalam situasi darurat atau saat pengurus
+      utama berhalangan hadir.
+    </li>
+    <li>
+      Menerapkan sistem informasi tersebut sebagai media penyebaran informasi terpadu seputar
+      kegiatan komunitas mahasiswa di Bondowoso. Tujuannya adalah memperluas jangkauan publikasi
+      agar eksistensi komunitas dan berbagai program kerja mahasiswa lebih dikenal secara luas
+      oleh masyarakat serta mitra strategis.
+    </li>
+    <li>
+      Memberikan edukasi dan pengembangan kapasitas kepada anggota komunitas melalui publikasi
+      artikel-artikel tematik, panduan organisasi, dan wawasan teknologi pada sistem informasi.
+      Hal ini bertujuan untuk meningkatkan kompetensi mahasiswa dalam berorganisasi agar mampu
+      menghasilkan program kerja yang berkualitas dan berdampak bagi kemajuan Bondowoso.
+    </li>
+  </ol>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== BAB 2 ==================== -->
+<div class="page">
+  <h1 class="section">BAB II – ISI</h1>
+
+  <h2 class="section">2.1 Profil Tim Pengembang</h2>
+  <table class="data" style="width:70%;">
+    <tr><td style="width:140px;">Nama Tim</td><td>: <strong>Nautilus</strong></td></tr>
+    <tr><td>Alamat</td><td>: Jl. KH. Wahid Hasyim No 41, Bondowoso – Jawa Timur</td></tr>
+    <tr><td>No. Telepon</td><td>: 085 335 809 393</td></tr>
+    <tr><td>Email</td><td>: hanyaverif@gmail.com</td></tr>
+  </table>
+  <p>Tim pengembang merupakan mahasiswa Program Studi Teknik Informatika, Politeknik Negeri Jember Kampus Bondowoso.</p>
+
+  <h2 class="section">2.2 Program yang Ditawarkan</h2>
+  <p class="indent">
+    Program yang ditawarkan pada website KOMBO Bondowoso bertujuan untuk memberikan kemudahan
+    bagi pengguna dalam memperoleh informasi serta melakukan pendaftaran secara online. Beberapa
+    program yang tersedia pada website ini antara lain:
+  </p>
+  <ol>
+    <li><strong>Informasi Organisasi</strong> – Website menyediakan informasi mengenai profil organisasi, visi dan misi, serta tujuan dari KOMBO Bondowoso.</li>
+    <li><strong>Informasi Divisi</strong> – Pengguna dapat melihat berbagai divisi yang ada dalam organisasi beserta penjelasan tugas dan perannya.</li>
+    <li><strong>Berita dan Kegiatan</strong> – Website menampilkan berbagai berita serta informasi mengenai kegiatan yang dilakukan oleh organisasi.</li>
+    <li><strong>Pendaftaran Anggota</strong> – Fitur ini memungkinkan mahasiswa untuk melakukan pendaftaran menjadi anggota KOMBO secara online melalui website.</li>
+    <li><strong>Media Sosial</strong> – Website menyediakan akses menuju media sosial resmi organisasi.</li>
+    <li><strong>FAQ (Pertanyaan Umum)</strong> – Halaman berisi berbagai pertanyaan yang sering diajukan oleh pengguna terkait organisasi maupun proses pendaftaran.</li>
+  </ol>
+
+  <p>Pada website KOMBO Bondowoso, hak akses sistem diberikan kepada <strong>operator</strong> yang merupakan salah satu pengurus KOMBO. Operator memiliki kewenangan untuk mengelola dan memperbarui informasi, antara lain:</p>
+  <ul>
+    <li>Mengelola informasi profil organisasi.</li>
+    <li>Menambahkan, mengubah, dan menghapus data divisi.</li>
+    <li>Mengelola berita atau informasi kegiatan organisasi.</li>
+    <li>Mengelola konten yang ditampilkan pada website agar tetap terbaru dan relevan.</li>
+  </ul>
+
+  <h2 class="section">2.3 Rencana Alur Pengerjaan</h2>
+  <table class="data timeline">
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Tahapan</th>
+        <th>Kegiatan</th>
+        <th>Minggu 1</th>
+        <th>Minggu 2</th>
+        <th>Minggu 3</th>
+        <th>Minggu 4</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="center">1</td>
+        <td>Analisis Sistem</td>
+        <td>Studi literatur, FGD, perancangan arsitektur, akuisisi aset</td>
+        <td class="center">✓</td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="center">2</td>
+        <td>UI/UX Design</td>
+        <td>Wireframe, design system, prototyping, user flow</td>
+        <td></td><td class="center">✓</td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="center">3</td>
+        <td>Development</td>
+        <td>Setup framework, frontend, backend, database</td>
+        <td></td><td></td><td class="center">✓</td><td></td>
+      </tr>
+      <tr>
+        <td class="center">4</td>
+        <td>Testing & QA</td>
+        <td>Compatibility test, unit testing, optimasi, bug fixing</td>
+        <td></td><td></td><td></td><td class="center">✓</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== RAB ==================== -->
+<div class="page">
+  <h1 class="section">BAB III – BIAYA PENGERJAAN</h1>
+
+  <p class="indent">
+    Pada dasarnya besar biaya tergantung pada jumlah modul/fasilitas yang diminta dalam suatu
+    program/aplikasi. Harga per modul adalah Rp.100.000,- (seratus ribu rupiah) sampai
+    Rp.1.500.000,- (satu juta lima ratus ribu rupiah) tergantung pada tingkat kesulitan pada
+    setiap modul/fasilitas. Tingkat kesulitan modul dihitung berdasarkan banyaknya fungsi yang
+    digunakan dalam form/modul tersebut.
+  </p>
+
+  <!-- 3.1 RAB Fitur -->
+  <h2 class="section">3.1 RAB Seluruh Fitur Website</h2>
+  <table class="data">
+    <thead>
+      <tr>
+        <th style="width:5%">No</th>
+        <th>Nama Modul / Fitur</th>
+        <th style="width:12%">Jumlah Fungsi</th>
+        <th style="width:18%">Harga</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="center">A</td><td>Tampilan Beranda</td><td class="center">8</td><td class="right">Rp 2.150.000</td></tr>
+      <tr><td class="center">B</td><td>Tampilan Pendaftaran</td><td class="center">7</td><td class="right">Rp 1.850.000</td></tr>
+      <tr><td class="center">C</td><td>Tampilan Kenali Divisi</td><td class="center">5</td><td class="right">Rp 1.250.000</td></tr>
+      <tr><td class="center">D</td><td>Tampilan Pengurus</td><td class="center">5</td><td class="right">Rp 1.150.000</td></tr>
+      <tr><td class="center">E</td><td>Tampilan Proker</td><td class="center">6</td><td class="right">Rp 1.450.000</td></tr>
+      <tr><td class="center">F</td><td>Tampilan News</td><td class="center">6</td><td class="right">Rp 1.350.000</td></tr>
+      <tr><td class="center">G</td><td>Tampilan Alumni</td><td class="center">4</td><td class="right">Rp 900.000</td></tr>
+      <tr><td class="center">H</td><td>Tampilan Masuk</td><td class="center">3</td><td class="right">Rp 750.000</td></tr>
+      <tr><td class="center">I</td><td>Tampilan Daftar</td><td class="center">4</td><td class="right">Rp 850.000</td></tr>
+      <tr><td class="center">J</td><td>Tampilan Admin</td><td class="center">8</td><td class="right">Rp 2.200.000</td></tr>
+      <tr class="total-row">
+        <td colspan="3" style="text-align:right; font-weight:bold;">TOTAL KESELURUHAN</td>
+        <td class="right"><strong>Rp 13.900.000</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 3.2 WBS -->
+  <h2 class="section">3.2 Work Breakdown Structure (WBS) & Estimasi Waktu</h2>
+  <table class="data" style="font-size:10pt;">
+    <thead>
+      <tr>
+        <th style="width:5%">No</th>
+        <th>Deskripsi Task</th>
+        <th style="width:7%">Vol</th>
+        <th style="width:8%">Satuan</th>
+        <th style="width:13%">Durasi/Unit (Menit)</th>
+        <th style="width:12%">WPT (Menit)</th>
+        <th style="width:8%">User</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- PHASE 1 -->
+      <tr class="phase-header">
+        <td class="center"><strong>1</strong></td>
+        <td colspan="4"><strong>PHASE 1: SYSTEM ANALYSIS</strong></td>
+        <td class="center"><strong>450</strong></td>
+        <td></td>
+      </tr>
+      <tr><td class="center">1.1</td><td>Studi literatur &amp; benchmarking kompetitor</td><td class="center">3</td><td class="center">Situs</td><td class="center">60</td><td class="center">180</td><td class="center">Sagita</td></tr>
+      <tr><td class="center">1.2</td><td>Focus Group Discussion (FGD) dengan stakeholder</td><td class="center">1</td><td class="center">Sesi</td><td class="center">120</td><td class="center">120</td><td class="center">Sagita</td></tr>
+      <tr><td class="center">1.3</td><td>Perancangan arsitektur informasi &amp; konten</td><td class="center">1</td><td class="center">Dok</td><td class="center">90</td><td class="center">90</td><td class="center">Sagita</td></tr>
+      <tr><td class="center">1.4</td><td>Akuisisi aset digital (Logo &amp; Media)</td><td class="center">1</td><td class="center">Pack</td><td class="center">60</td><td class="center">60</td><td class="center">Sagita</td></tr>
+      <!-- PHASE 2 -->
+      <tr class="phase-header">
+        <td class="center"><strong>2</strong></td>
+        <td colspan="4"><strong>PHASE 2: UI/UX DESIGN</strong></td>
+        <td class="center"><strong>1.410</strong></td>
+        <td></td>
+      </tr>
+      <tr><td class="center">2.1</td><td>Perancangan Wireframe (Low-Fidelity)</td><td class="center">8</td><td class="center">Page</td><td class="center">30</td><td class="center">240</td><td class="center">Jakfar</td></tr>
+      <tr><td class="center">2.2</td><td>Penyusunan Design System (Styleguide)</td><td class="center">1</td><td class="center">Dok</td><td class="center">60</td><td class="center">60</td><td class="center">Jakfar</td></tr>
+      <tr><td class="center">2.3</td><td>Visual Design &amp; Prototyping (High-Fidelity)</td><td class="center">8</td><td class="center">Page</td><td class="center">120</td><td class="center">960</td><td class="center">Jakfar</td></tr>
+      <tr><td class="center">2.4</td><td>User Flow &amp; Interactive Simulation</td><td class="center">1</td><td class="center">Keg</td><td class="center">150</td><td class="center">150</td><td class="center">Jakfar</td></tr>
+      <!-- PHASE 3 -->
+      <tr class="phase-header">
+        <td class="center"><strong>3</strong></td>
+        <td colspan="4"><strong>PHASE 3: DEVELOPMENT &amp; IMPLEMENTASI</strong></td>
+        <td class="center"><strong>1.680</strong></td>
+        <td></td>
+      </tr>
+      <tr><td class="center">3.1</td><td>Konfigurasi Framework &amp; Environment Setup</td><td class="center">1</td><td class="center">Keg</td><td class="center">60</td><td class="center">60</td><td class="center">Kholit</td></tr>
+      <tr><td class="center">3.2</td><td>Implementasi Frontend (Slicing Design)</td><td class="center">8</td><td class="center">Page</td><td class="center">90</td><td class="center">720</td><td class="center">Kholit</td></tr>
+      <tr><td class="center">3.3</td><td>Pengembangan Arsitektur Backend &amp; Database</td><td class="center">8</td><td class="center">Fitur</td><td class="center">90</td><td class="center">720</td><td class="center">Kholit</td></tr>
+      <tr><td class="center">3.4</td><td>Troubleshooting &amp; Technical Research</td><td class="center">3</td><td class="center">Sesi</td><td class="center">60</td><td class="center">180</td><td class="center">Kholit</td></tr>
+      <!-- PHASE 4 -->
+      <tr class="phase-header">
+        <td class="center"><strong>4</strong></td>
+        <td colspan="4"><strong>PHASE 4: TESTING &amp; QUALITY ASSURANCE</strong></td>
+        <td class="center"><strong>315</strong></td>
+        <td></td>
+      </tr>
+      <tr><td class="center">4.1</td><td>Compatibility Test (Cross-browser &amp; Responsive)</td><td class="center">1</td><td class="center">Keg</td><td class="center">60</td><td class="center">60</td><td class="center">Akbar</td></tr>
+      <tr><td class="center">4.2</td><td>Functional Testing (Unit Testing)</td><td class="center">1</td><td class="center">Keg</td><td class="center">45</td><td class="center">45</td><td class="center">Akbar</td></tr>
+      <tr><td class="center">4.3</td><td>Optimization &amp; Performance Tuning</td><td class="center">1</td><td class="center">Keg</td><td class="center">90</td><td class="center">90</td><td class="center">Akbar</td></tr>
+      <tr><td class="center">4.4</td><td>Bug Fixing &amp; Final Validation</td><td class="center">1</td><td class="center">Keg</td><td class="center">120</td><td class="center">120</td><td class="center">Akbar</td></tr>
+      <!-- TOTAL WPT -->
+      <tr class="total-row">
+        <td colspan="5" style="text-align:right;">TOTAL DURASI (WPT)</td>
+        <td class="center"><strong>3.855 menit</strong></td>
+        <td></td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="5" style="text-align:right;">TOTAL BEBAN KERJA</td>
+        <td class="center"><strong>64,25 Jam</strong></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== RAB DETAIL ==================== -->
+<div class="page">
+  <h2 class="section">3.3 Rancangan Anggaran Biaya (RAB) Detail</h2>
+  <p>Penyusunan anggaran biaya proyek software terdiri dari tiga komponen, yaitu:</p>
+
+  <!-- A. Biaya Langsung Personil -->
+  <p class="rab-label">1) Biaya Langsung Personil</p>
+  <p style="font-size:11pt; font-style:italic; margin-bottom:4px;">Tabel 3.1 Biaya Langsung Personil</p>
+  <table class="data">
+    <thead>
+      <tr>
+        <th style="width:5%">No</th>
+        <th>Job Function</th>
+        <th style="width:10%">Jumlah</th>
+        <th style="width:12%">ManDays</th>
+        <th style="width:18%">ManDays Rate</th>
+        <th style="width:20%">Total Biaya Kerja</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!--
+        Estimasi ManDays = 30 hari (1 bulan proyek)
+        Rate mengacu standar junior-mid developer Indonesia (tidak berlebihan, realistis utk mahasiswa junior)
+        Product Owner : Rp 100.000/hari → Rp 3.000.000 (koordinasi, kebutuhan, komunikasi klien)
+        UI/UX Designer: Rp 85.000/hari → Rp 2.550.000
+        Frontend Dev  : Rp 90.000/hari → Rp 2.700.000
+        Backend Dev   : Rp 90.000/hari → Rp 2.700.000
+        QA / Tester   : Rp 75.000/hari → Rp 2.250.000
+      -->
+      <tr>
+        <td class="center">1</td><td>Product Owner / Analis Sistem</td>
+        <td class="center">1</td><td class="center">30</td>
+        <td class="right">Rp 100.000</td><td class="right">Rp 3.000.000</td>
+      </tr>
+      <tr>
+        <td class="center">2</td><td>UI/UX Designer</td>
+        <td class="center">1</td><td class="center">30</td>
+        <td class="right">Rp 85.000</td><td class="right">Rp 2.550.000</td>
+      </tr>
+      <tr>
+        <td class="center">3</td><td>Frontend Developer</td>
+        <td class="center">1</td><td class="center">30</td>
+        <td class="right">Rp 90.000</td><td class="right">Rp 2.700.000</td>
+      </tr>
+      <tr>
+        <td class="center">4</td><td>Backend Developer</td>
+        <td class="center">1</td><td class="center">30</td>
+        <td class="right">Rp 90.000</td><td class="right">Rp 2.700.000</td>
+      </tr>
+      <tr>
+        <td class="center">5</td><td>Quality Control / Tester</td>
+        <td class="center">1</td><td class="center">30</td>
+        <td class="right">Rp 75.000</td><td class="right">Rp 2.250.000</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="5" style="text-align:right;">Total</td>
+        <td class="right"><strong>Rp 13.200.000</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- B. Biaya Langsung Non Personil -->
+  <p class="rab-label">2) Biaya Langsung Non Personil (Biaya Operasional)</p>
+  <p style="font-size:11pt; font-style:italic; margin-bottom:4px;">Tabel 3.2 Biaya Langsung Non Personil</p>
+  <table class="data">
+    <thead>
+      <tr>
+        <th style="width:5%">No</th>
+        <th>Jenis Biaya</th>
+        <th style="width:10%">Jumlah</th>
+        <th style="width:10%">Unit</th>
+        <th style="width:18%">Harga Unit</th>
+        <th style="width:18%">Sub Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="center">1</td><td>Biaya ATK (Alat Tulis Kantor)</td><td class="center">1</td><td class="center">Set</td><td class="right">Rp 400.000</td><td class="right">Rp 400.000</td></tr>
+      <tr><td class="center">2</td><td>Biaya Komunikasi (Pulsa/Data)</td><td class="center">1</td><td class="center">Bulan</td><td class="right">Rp 200.000</td><td class="right">Rp 200.000</td></tr>
+      <tr><td class="center">3</td><td>Biaya Tinta Komputer &amp; Kertas</td><td class="center">1</td><td class="center">Paket</td><td class="right">Rp 200.000</td><td class="right">Rp 200.000</td></tr>
+      <tr><td class="center">4</td><td>Domain Website (Alamat Website)</td><td class="center">1</td><td class="center">Tahun</td><td class="right">Rp 200.000</td><td class="right">Rp 200.000</td></tr>
+      <tr><td class="center">5</td><td>Hosting / Server</td><td class="center">12</td><td class="center">Bulan</td><td class="right">Rp 50.000</td><td class="right">Rp 600.000</td></tr>
+      <tr><td class="center">6</td><td>Dokumentasi Analisis</td><td class="center">1</td><td class="center">Buku</td><td class="right">Rp 400.000</td><td class="right">Rp 400.000</td></tr>
+      <tr><td class="center">7</td><td>Dokumentasi Desain</td><td class="center">1</td><td class="center">Buku</td><td class="right">Rp 400.000</td><td class="right">Rp 400.000</td></tr>
+      <tr><td class="center">8</td><td>Dokumentasi Manual Book</td><td class="center">1</td><td class="center">Buku</td><td class="right">Rp 400.000</td><td class="right">Rp 400.000</td></tr>
+      <tr><td class="center">9</td><td>Dokumentasi Video Tutorial</td><td class="center">2</td><td class="center">Video</td><td class="right">Rp 200.000</td><td class="right">Rp 400.000</td></tr>
+      <tr><td class="center">10</td><td>Diskusi &amp; Presentasi ke Klien</td><td class="center">3</td><td class="center">Sesi</td><td class="right">Rp 100.000</td><td class="right">Rp 300.000</td></tr>
+      <tr class="total-row">
+        <td colspan="5" style="text-align:right;">Total</td>
+        <td class="right"><strong>Rp 3.500.000</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- C. PPN & Rekapitulasi -->
+  <p class="rab-label">3) Pajak Pertambahan Nilai (PPN)</p>
+  <p style="font-size:11pt; font-style:italic; margin-bottom:4px;">Tabel 3.3 Rekapitulasi Biaya Proyek</p>
+  <table class="data" style="width:70%;">
+    <thead>
+      <tr>
+        <th style="width:5%">No</th>
+        <th>Kegiatan</th>
+        <th style="width:28%">Sub Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="center">1</td><td>Biaya Langsung Personil</td><td class="right">Rp 13.200.000</td></tr>
+      <tr><td class="center">2</td><td>Biaya Langsung Non Personil</td><td class="right">Rp 3.500.000</td></tr>
+      <tr class="subtotal">
+        <td colspan="2" style="text-align:right;">Subtotal</td>
+        <td class="right">Rp 16.700.000</td>
+      </tr>
+      <tr>
+        <td class="center">3</td>
+        <td>PPN 11%</td>
+        <td class="right">Rp 1.837.000</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="2" style="text-align:right; font-size:12pt;">TOTAL</td>
+        <td class="right" style="font-size:12pt;"><strong>Rp 18.537.000</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top:8px; font-size:11pt;">
+    <em>Terbilang:</em> <strong>Delapan Belas Juta Lima Ratus Tiga Puluh Tujuh Ribu Rupiah</strong>
+  </p>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== BAB 4 ==================== -->
+<div class="page">
+  <h1 class="section">BAB IV – MEKANISME KERJA SAMA</h1>
+  <p class="indent">Secara ringkas, mekanisme kerja sama yang dilakukan adalah sebagai berikut:</p>
+
+  <ol>
+    <li style="margin-bottom:8px;">
+      <strong>Pengajuan Proposal Kerja Sama</strong><br>
+      Tim pengembang menyampaikan proposal kerja sama kepada institusi atau pihak yang menjadi calon mitra.
+    </li>
+    <li style="margin-bottom:8px;">
+      <strong>Kesediaan Institusi Partner</strong><br>
+      Apabila institusi partner berminat untuk menjalin kerja sama, pihak partner akan mengundang tim pengembang untuk melakukan pertemuan guna membahas kebutuhan, ruang lingkup, serta bentuk kerja sama yang akan dilakukan.
+    </li>
+    <li style="margin-bottom:8px;">
+      <strong>Penyediaan Waktu dan Tempat Presentasi</strong><br>
+      Institusi partner menyediakan waktu dan fasilitas yang diperlukan bagi tim pengembang untuk melakukan presentasi produk dan penjelasan teknis terkait solusi yang ditawarkan.
+    </li>
+    <li style="margin-bottom:8px;">
+      <strong>Presentasi Produk oleh Tim Pengembang</strong><br>
+      Tim pengembang memanfaatkan kesempatan yang diberikan untuk mempresentasikan produk secara menyeluruh, termasuk fitur, manfaat, alur penggunaan, serta potensi implementasi pada institusi partner.
+    </li>
+    <li style="margin-bottom:8px;">
+      <strong>Kesepakatan dan Transaksi Kerja Sama</strong><br>
+      Setelah tercapai kesepahaman mengenai produk dan kerja sama yang akan dilakukan, maka proses transaksi dapat dilaksanakan. Calon pengguna menentukan metode pembayaran yang akan digunakan, seperti pembayaran tunai (cash), pembayaran bertahap, atau metode lain sesuai kesepakatan kedua belah pihak.
+    </li>
+  </ol>
+
+  <h2 class="section">4.1 Proses Pembayaran</h2>
+  <ol>
+    <li style="margin-bottom:8px;">
+      <strong>Pembayaran Uang Muka (Down Payment – DP)</strong><br>
+      Pembayaran awal sebesar <strong>30%</strong> dari total nilai kerja sama dilakukan sebagai tanda jadi. 
+      Setelah dana DP diterima di rekening tim pengembang, proses pengembangan atau penyesuaian program 
+      akan mulai dikerjakan sesuai dengan spesifikasi dan kesepakatan yang telah ditetapkan bersama.
+      <br><em>DP 30% = <strong>Rp 5.561.100</strong></em>
+    </li>
+    <li style="margin-bottom:8px;">
+      <strong>Pelunasan Pembayaran</strong><br>
+      Sisa pembayaran dilunasi setelah program selesai dikembangkan, telah disosialisasikan kepada pihak 
+      pengguna, serta dinyatakan siap untuk diimplementasikan atau digunakan.
+      <br><em>Sisa 70% = <strong>Rp 12.975.900</strong></em>
+    </li>
+  </ol>
+
+  <h1 class="section" style="margin-top:24px;">BAB V – PENUTUP</h1>
+  <p class="indent">
+    Demikian proposal penawaran kerja sama ini kami sampaikan. Adapun poin-poin kesimpulan 
+    dari kemitraan ini adalah sebagai berikut:
+  </p>
+  <ol>
+    <li style="margin-bottom:8px;">
+      <strong>Penyediaan Solusi Digital:</strong> Kami dari tim pengembang sistem menawarkan perangkat lunak 
+      berbasis website yang dirancang khusus untuk mengintegrasikan mahasiswa, pengurus komunitas, 
+      dan sponsor di Bondowoso melalui sistem manajemen informasi yang terpusat.
+    </li>
+    <li style="margin-bottom:8px;">
+      <strong>Presentasi &amp; Demonstrasi:</strong> Kami berharap dapat diberikan kesempatan untuk 
+      mempresentasikan fitur-fitur unggulan sistem, termasuk mekanisme delegasi tugas pengurus, 
+      secara langsung di hadapan Bapak/Ibu.
+    </li>
+  </ol>
+
+  <p class="indent" style="margin-top:14px;">
+    Besar harapan kami agar proposal ini dapat diterima dan menjadi awal dari kerja sama yang 
+    saling menguntungkan. Atas perhatian dan kesempatan yang diberikan, kami mengucapkan 
+    terima kasih.
+  </p>
+
+  <!-- Tanda Tangan -->
+  <div class="sign-block">
+    <p style="text-align:right; margin-right:60px;">Bondowoso, Maret 2026</p>
+    <div class="sign-row" style="margin-top:16px;">
+      <div class="sign-col">
+        <p>Mengetahui,</p>
+        <p><strong>Pimpinan KOMBO POLIJE</strong></p>
+        <div class="sign-line"></div>
+        <p>(__________________________)</p>
+      </div>
+      <div class="sign-col">
+        <p>Hormat Kami,</p>
+        <p><strong>Ketua Tim Nautilus</strong></p>
+        <div class="sign-line"></div>
+        <p>(__________________________)</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

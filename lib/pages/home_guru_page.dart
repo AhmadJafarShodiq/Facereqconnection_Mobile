@@ -26,6 +26,7 @@ class _HomeGuruPageState extends State<HomeGuruPage> {
   bool checkedOut = false;
 
   int? loadingSessionId;
+  Map<int, List<Map<String, dynamic>>> presentStudentsMap = {};
 
   @override
   void initState() {
@@ -80,6 +81,21 @@ class _HomeGuruPageState extends State<HomeGuruPage> {
   Future<void> _loadTodaySubjects() async {
     try {
       todaySubjects = await ApiService.guruTodaySchedule();
+      
+      // Fetch present students for open sessions
+      for (var s in todaySubjects) {
+        if (s['session_open'] == true) {
+          final sid = (s['id'] as num).toInt();
+          final cid = (s['class_id'] as num).toInt();
+          try {
+            final res = await ApiService.studentAttendanceBySubject(
+              subjectId: sid,
+              classId: cid,
+            );
+            presentStudentsMap[sid] = List<Map<String, dynamic>>.from(res['present'] ?? []);
+          } catch (_) {}
+        }
+      }
     } catch (_) {
       todaySubjects = [];
     }
@@ -361,8 +377,94 @@ class _HomeGuruPageState extends State<HomeGuruPage> {
                     ),
                   ],
                 ),
+                if (presentStudentsMap.containsKey((subject['id'] as num).toInt()) && presentStudentsMap[(subject['id'] as num).toInt()]!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: presentStudentsMap[(subject['id'] as num).toInt()]!.take(8).map((s) {
+                        return Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.green.withOpacity(0.1)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.check_circle_outline, size: 10, color: Colors.green),
+                              const SizedBox(width: 6),
+                              Text(
+                                s['nama'] ?? '-',
+                                style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList() + [
+                        if (presentStudentsMap[(subject['id'] as num).toInt()]!.length > 8)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Text(
+                              '+${presentStudentsMap[(subject['id'] as num).toInt()]!.length - 8} lainnya',
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade400, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SubjectDetailPage(
+                          subject: subject,
+                          classId: (subject['class_id'] as num).toInt(),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppConfig.primaryColor, AppConfig.primaryColor.withOpacity(0.9)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppConfig.primaryColor.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                         Icon(Icons.assignment_ind_outlined, size: 16, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          "DATA KEHADIRAN",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 if (subject['remaining_seconds'] != null && (subject['remaining_seconds'] as num) > 0) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       const Icon(Icons.timer_outlined, size: 14, color: Colors.orange),

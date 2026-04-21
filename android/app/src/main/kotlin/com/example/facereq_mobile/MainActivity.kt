@@ -1,8 +1,10 @@
 package com.example.facereq_mobile
 
 import android.graphics.*
+import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -17,6 +19,12 @@ import java.nio.ByteOrder
 import kotlin.math.abs
 
 class MainActivity : FlutterFragmentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Izin rekam layar (hapus proteksi keamanan untuk perekaman demo)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
 
     private val CHANNEL = "face_recognition"
 
@@ -239,7 +247,7 @@ class MainActivity : FlutterFragmentActivity() {
     val w = ((maxX - minX) * bitmap.width).toInt()
     val h = ((maxY - minY) * bitmap.height).toInt()
 
-    // 🔥 CEK VALIDITAS
+    
     if (w <= 0 || h <= 0 || x + w > bitmap.width || y + h > bitmap.height) {
         Log.e("CropFace", "Invalid bounding box: x=$x y=$y w=$w h=$h bitmapWidth=${bitmap.width} bitmapHeight=${bitmap.height}")
         return null
